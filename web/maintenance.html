@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TuneTrack — Maintenance Portal</title>
+<style>
+  :root{--bg:#121419;--panel:#1A1E25;--panel2:#222831;--line:#2C333D;--ink:#F3F6F9;
+    --mut:#8A95A1;--amber:#F2640A;--cyan:#19B9CC;--green:#3FCF6B;--red:#F0473E;--yellow:#F2B705;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:Calibri,Segoe UI,system-ui,sans-serif;padding:14px}
+  .wrap{max-width:1080px;margin:0 auto}
+  a{color:var(--cyan);text-decoration:none}
+  .eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+  h1{font-family:Cambria,Georgia,serif;font-size:24px;margin:2px 0 2px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:14px}
+  .summary{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+  .sc{flex:1;min-width:150px;background:var(--panel);border-radius:13px;padding:13px}
+  .sc b{font-size:28px;font-variant-numeric:tabular-nums}
+  .sc .l{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+  .filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .fb{padding:6px 13px;border:none;border-radius:99px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:var(--panel2);color:var(--mut)}
+  .fb.active{background:var(--amber);color:#fff}
+  .grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+  .card{background:var(--panel);border-radius:13px;padding:13px;border-left:none}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .card .name{font-family:Cambria,serif;font-size:15px;font-weight:700}
+  .card .sys{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:5px}
+  .pill{font-size:10px;font-weight:800;padding:2px 9px;border-radius:99px;white-space:nowrap}
+  .ok{background:#163524;color:var(--green)}.soon{background:#3a3110;color:var(--yellow)}.over{background:#3a1815;color:var(--red)}
+  .meta{display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--mut)}
+  .meta span{margin-right:18px}
+  .meta b{color:var(--ink)}
+  .logbtn{margin-top:9px;width:100%;padding:7px;border:none;border-radius:8px;background:var(--panel2);color:var(--cyan);font-family:inherit;font-weight:700;font-size:12px;cursor:pointer}
+  .hint{font-size:11px;color:var(--mut);margin-top:14px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">TuneTrack · maintenance portal &nbsp;·&nbsp; <a href="index.html">← hub</a></div>
+  <h1>Service status — Redeye 1,000-whp E85 build</h1>
+  <div class="sub">Wear items run hard on a boosted E85 drag car. Green = good, amber = due soon, red = overdue.</div>
+
+  <div class="summary">
+    <div class="sc"><div class="l">Items tracked</div><b id="s-total">12</b></div>
+    <div class="sc"><div class="l">Due soon</div><b id="s-soon" style="color:var(--yellow)">4</b></div>
+    <div class="sc"><div class="l">Overdue</div><b id="s-over" style="color:var(--red)">1</b></div>
+    <div class="sc"><div class="l">Healthy</div><b id="s-ok" style="color:var(--green)">7</b></div>
+  </div>
+
+  <div class="filters">
+    <button class="fb active" data-f="all">All</button>
+    <button class="fb" data-f="over">Overdue</button>
+    <button class="fb" data-f="soon">Due soon</button>
+    <button class="fb" data-f="ok">Healthy</button>
+  </div>
+
+  <div class="grid" id="grid">
+    <!-- ENGINE -->
+    <div class="card" data-st="ok"><div class="sys">Engine</div><div class="top"><span class="name">Engine oil & filter</span><span class="pill ok">OK</span></div>
+      <div class="meta"><span>Interval <b>1,500 mi / 15 passes</b></span><span>Next <b>in 9 passes</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <div class="card" data-st="soon"><div class="sys">Forced induction</div><div class="top"><span class="name">Supercharger snout oil (IHI)</span><span class="pill soon">DUE SOON</span></div>
+      <div class="meta"><span>Interval <b>Annual / season</b></span><span>Next <b>this month</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <div class="card" data-st="ok"><div class="sys">Forced induction</div><div class="top"><span class="name">Blower belt (3″ upper)</span><span class="pill ok">OK</span></div>
+      <div class="meta"><span>Interval <b>Inspect each event</b></span><span>Last <b>fresh w/ pulley</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <div class="card" data-st="soon"><div class="sys">Forced induction</div><div class="top"><span class="name">Crank hub inspection</span><span class="pill soon">DUE SOON</span></div>
+      <div class="meta"><span>Interval <b>Each season</b></span><span>Next <b>before next event</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <div class="card" data-st="ok"><div class="sys">Engine</div><div class="top"><span class="name">Spark plugs (1-step colder)</span><span class="pill ok">OK</span></div>
+      <div class="meta"><span>Interval <b>5,000 mi / season</b></span><span>Next <b>mid-season</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <div class="card" data-st="ok"><div class="sys">Cooling</div><div class="top"><span class="name">Coolant + LTR (OAT MS.90032)</span><span class="pill ok">OK</span></div>
+      <div class="meta"><span>Interval <b>2 years</b></span><span>Next <b>next year</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <!-- FUEL -->
+    <div class="card" data-st="soon"><div class="sys">Fuel</div><div class="top"><span class="name">Fuel filter + E85 water test</span><span class="pill soon">DUE SOON</span></div>
+      <div class="meta"><span>Interval <b>3 months</b></span><span>Next <b>this month</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <div class="card" data-st="ok"><div class="sys">Fuel</div><div class="top"><span class="name">Pump + injector health check</span><span class="pill ok">OK</span></div>
+      <div class="meta"><span>Interval <b>Annual</b></span><span>Next <b>off-season</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <!-- DRIVELINE -->
+    <div class="card" data-st="over"><div class="sys">Driveline</div><div class="top"><span class="name">Differential fluid</span><span class="pill over">OVERDUE</span></div>
+      <div class="meta"><span>Interval <b>Annual</b></span><span>Last <b>14 months ago</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <div class="card" data-st="ok"><div class="sys">Driveline</div><div class="top"><span class="name">Trans fluid (8HP, drag use)</span><span class="pill ok">OK</span></div>
+      <div class="meta"><span>Interval <b>15,000 mi / annual</b></span><span>Next <b>off-season</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <div class="card" data-st="ok"><div class="sys">Driveline</div><div class="top"><span class="name">Driveshaft / axles inspect</span><span class="pill ok">OK</span></div>
+      <div class="meta"><span>Interval <b>Each event</b></span><span>Last <b>last event</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+
+    <!-- CHASSIS / TIRES -->
+    <div class="card" data-st="soon"><div class="sys">Tires</div><div class="top"><span class="name">Drag radials — heat cycles</span><span class="pill soon">DUE SOON</span></div>
+      <div class="meta"><span>Limit <b>~12 cycles</b></span><span>On set <b>9 cycles</b></span></div>
+      <button class="logbtn">Log service done today</button></div>
+  </div>
+
+  <div class="hint" id="hint">Tap a status to filter. “Log service” marks an item done (in-memory demo) — in the build this reads/writes the maintenance tables in tunetrack.db. Open in a browser if the in-app preview won't load.</div>
+</div>
+
+<script>
+const grid=document.getElementById("grid");
+function recount(){
+  const cards=[...grid.querySelectorAll(".card")];
+  const c={ok:0,soon:0,over:0};
+  cards.forEach(x=>c[x.dataset.st]++);
+  document.getElementById("s-total").textContent=cards.length;
+  document.getElementById("s-soon").textContent=c.soon;
+  document.getElementById("s-over").textContent=c.over;
+  document.getElementById("s-ok").textContent=c.ok;
+}
+document.querySelectorAll(".fb").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".fb").forEach(x=>x.classList.toggle("active",x===b));
+  const f=b.dataset.f;
+  grid.querySelectorAll(".card").forEach(x=>x.style.display=(f==="all"||x.dataset.st===f)?"":"none");
+});
+grid.querySelectorAll(".logbtn").forEach(btn=>btn.onclick=()=>{
+  const card=btn.closest(".card"); card.dataset.st="ok";
+  const pill=card.querySelector(".pill"); pill.className="pill ok"; pill.textContent="OK";
+  const meta=card.querySelector(".meta"); meta.innerHTML="<span>Logged <b>today</b></span><span>Next <b>per interval</b></span>";
+  recount();
+});
+recount();
+</script>
+</body>
+</html>

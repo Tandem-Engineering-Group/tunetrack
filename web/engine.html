@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TuneTrack — Engine Portal</title>
+<style>
+  :root{--bg:#121419;--panel:#1A1E25;--panel2:#222831;--line:#2C333D;--ink:#F3F6F9;
+    --mut:#8A95A1;--amber:#F2640A;--cyan:#19B9CC;--green:#3FCF6B;--red:#F0473E;--yellow:#F2B705;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:Calibri,Segoe UI,system-ui,sans-serif;padding:12px}
+  .wrap{max-width:1100px;margin:0 auto}
+  .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .between{justify-content:space-between}
+  h1{font-family:Cambria,Georgia,serif;font-size:20px}
+  .eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+  button{font-family:inherit;border:none;cursor:pointer;border-radius:9px}
+  .mode{padding:7px 12px;font-size:12px;font-weight:700;background:var(--panel2);color:var(--mut);transition:.15s}
+  .mode.active{background:var(--amber);color:#fff}
+  .pill{padding:6px 11px;font-size:12px;font-weight:700;border-radius:99px}
+  .panel{background:var(--panel);border-radius:14px;padding:12px;margin-bottom:12px}
+  svg{display:block;width:100%;height:auto}
+  .grid{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+  .g{background:var(--panel2);border-radius:11px;padding:9px;cursor:pointer;border:2px solid transparent;transition:.12s}
+  .g.sel{border-color:var(--amber)}
+  .g .lab{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+  .g .val{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+  .g .u{font-size:11px;color:var(--mut);font-weight:400}
+  .bar{height:5px;width:100%;background:var(--line);border-radius:99px;overflow:hidden;margin-top:6px}
+  .bar>i{display:block;height:100%;border-radius:99px;transition:width .12s linear,background .2s}
+  .info{display:flex;gap:12px;flex-wrap:wrap}
+  .info .lead{flex:1;min-width:200px}
+  .badge{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:99px;margin-bottom:6px}
+  .meaning{font-size:13px;color:#C7CDD4;line-height:1.55}
+  .hint{font-size:11px;color:var(--mut);margin-top:4px}
+  input[type=range]{width:100%;accent-color:var(--amber)}
+  .lblpip{font-size:9px;fill:#C7CDD4;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row between" style="margin-bottom:10px">
+    <div>
+      <div class="eyebrow">TuneTrack · engine portal</div>
+      <h1>The engine, performing — and what it's telling you</h1>
+    </div>
+    <div class="row" id="modes"></div>
+  </div>
+
+  <div class="panel">
+    <div class="row between" style="margin-bottom:6px">
+      <span class="eyebrow">2020 Challenger Redeye · 6.2 supercharged · E85</span>
+      <span class="eyebrow" id="rpmtag">850 rpm</span>
+    </div>
+    <!-- engine schematic -->
+    <svg viewBox="0 0 620 300" id="eng">
+      <defs>
+        <linearGradient id="heat" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#19B9CC"/><stop offset="1" id="heatstop" stop-color="#19B9CC"/>
+        </linearGradient>
+      </defs>
+      <!-- airflow path -->
+      <path id="airflow" d="M30,70 H150 Q175,70 175,110 V120 H250 H330" fill="none" stroke="#19B9CC" stroke-width="3" stroke-dasharray="6 7" opacity="0.85"/>
+      <!-- coolant loop -->
+      <path id="coolant" d="M300,40 H360 Q380,40 380,60 V95" fill="none" stroke="#3FCF6B" stroke-width="2.5" stroke-dasharray="4 6" opacity="0.8"/>
+      <path id="coolant2" d="M300,40 H250 Q235,40 235,60 V95" fill="none" stroke="#3FCF6B" stroke-width="2.5" stroke-dasharray="4 6" opacity="0.8"/>
+
+      <!-- intake -->
+      <rect x="20" y="52" width="60" height="36" rx="6" fill="#262C35"/>
+      <text x="50" y="74" fill="#C7CDD4" font-size="10" text-anchor="middle" font-weight="700">Intake</text>
+
+      <!-- supercharger -->
+      <rect x="120" y="86" width="110" height="56" rx="10" fill="#2A3340" stroke="#2C333D"/>
+      <g id="blower" transform-origin="150 114">
+        <circle cx="150" cy="114" r="17" fill="none" stroke="#19B9CC" stroke-width="3"/>
+        <line x1="150" y1="97" x2="150" y2="131" stroke="#19B9CC" stroke-width="3"/>
+        <line x1="133" y1="114" x2="167" y2="114" stroke="#19B9CC" stroke-width="3"/>
+      </g>
+      <g id="blower2" transform-origin="195 114">
+        <circle cx="195" cy="114" r="17" fill="none" stroke="#19B9CC" stroke-width="3"/>
+        <line x1="195" y1="97" x2="195" y2="131" stroke="#19B9CC" stroke-width="3"/>
+        <line x1="178" y1="114" x2="212" y2="114" stroke="#19B9CC" stroke-width="3"/>
+      </g>
+      <text x="175" y="158" fill="#C7CDD4" font-size="10" text-anchor="middle" font-weight="700">Supercharger</text>
+
+      <!-- intercooler -->
+      <rect x="250" y="96" width="100" height="40" rx="6" fill="#262C35"/>
+      <g stroke="#3FCF6B" stroke-width="2" opacity="0.7">
+        <line x1="262" y1="100" x2="262" y2="132"/><line x1="276" y1="100" x2="276" y2="132"/>
+        <line x1="290" y1="100" x2="290" y2="132"/><line x1="304" y1="100" x2="304" y2="132"/>
+        <line x1="318" y1="100" x2="318" y2="132"/><line x1="332" y1="100" x2="332" y2="132"/>
+      </g>
+      <text x="300" y="150" fill="#C7CDD4" font-size="10" text-anchor="middle" font-weight="700">Intercooler (LTR)</text>
+
+      <!-- intake manifold -->
+      <path d="M330,112 H430 L420,150 H340 Z" fill="#2A3340" stroke="#2C333D"/>
+      <text x="382" y="135" fill="#C7CDD4" font-size="9" text-anchor="middle" font-weight="700">Manifold</text>
+      <!-- fuel rail -->
+      <rect x="338" y="104" width="92" height="7" rx="3" fill="#F2B705" opacity="0.85"/>
+
+      <!-- cylinders V8 -->
+      <g id="cyls"></g>
+      <rect x="340" y="158" width="120" height="62" rx="8" fill="#222831" stroke="#2C333D"/>
+      <text x="400" y="234" fill="#C7CDD4" font-size="10" text-anchor="middle" font-weight="700">Cylinders</text>
+
+      <!-- exhaust -->
+      <path id="exh" d="M460,180 H520 Q545,180 545,150 V120" fill="none" stroke="url(#heat)" stroke-width="6" opacity="0.9"/>
+      <text x="545" y="110" fill="#C7CDD4" font-size="10" text-anchor="middle" font-weight="700">Exhaust</text>
+
+      <!-- sensor pips (clickable) -->
+      <g id="pips"></g>
+    </svg>
+
+    <div class="row" style="margin-top:8px;gap:10px">
+      <button class="pill" id="play" style="background:var(--amber);color:#fff">► Play a pull</button>
+      <button class="pill" id="knock" style="background:var(--panel2);color:var(--mut)">Simulate knock</button>
+      <div style="flex:1;min-width:160px">
+        <div class="hint">Throttle</div>
+        <input type="range" id="thr" min="0" max="100" value="0"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="eyebrow" style="margin-bottom:8px">Live sensors — tap any one</div>
+    <div class="grid" id="gauges"></div>
+  </div>
+
+  <div class="panel">
+    <div class="info">
+      <div class="lead">
+        <span class="badge" id="i-badge">OK</span>
+        <div><span class="val" id="i-val" style="font-size:30px;font-weight:800"></span> <span class="u" id="i-unit" style="color:var(--mut)"></span></div>
+        <div class="eyebrow" id="i-name" style="margin-top:2px"></div>
+      </div>
+      <div class="lead">
+        <div class="meaning" id="i-mean"></div>
+        <div class="hint" id="i-read"></div>
+      </div>
+    </div>
+  </div>
+  <div class="hint" style="text-align:center">Illustrative model of a supercharged 6.2 on E85 — values are simulated to show behavior and meaning, not a live feed. If the in-app preview won't load, open in a browser.</div>
+</div>
+
+<script>
+const C={amber:"#F2640A",cyan:"#19B9CC",green:"#3FCF6B",red:"#F0473E",yellow:"#F2B705",mut:"#8A95A1"};
+
+/* ---- sensor definitions: meaning + interpreter ---- */
+const SENSORS=[
+  {k:"rpm",lab:"Engine",unit:"rpm",max:7000,
+   mean:"How fast the crank is spinning. Redline is ~6,300; on the 8-speed auto you'll see it saw up and down as it shifts through a pull.",
+   read:v=>v<1200?["Idle","ok"]:v>6300?["At redline — shift","warn"]:["In range","ok"]},
+  {k:"boost",lab:"Boost",unit:"psi",max:18,
+   mean:"Manifold pressure above atmosphere. The belt-driven blower makes more boost as RPM climbs — target is ~15-16 psi. If it rises then falls off up top, suspect belt slip after the pulley swap.",
+   read:v=>v<1?["Off boost","ok"]:v>17?["Over target","warn"]:["Building / on target","ok"]},
+  {k:"iat",lab:"Intake air",unit:"°C",max:90,
+   mean:"Temperature of the air entering the cylinders after the blower. Cooler = denser and safer. The low-temp (LTR) intercooler loop fights this; sustained boost and staging in the heat make it climb — and hot air invites knock.",
+   read:v=>v<55?["Cool — good","ok"]:v<68?["Warming","warn"]:["Heat soak — risk","bad"]},
+  {k:"knock",lab:"Knock retard",unit:"°",max:5,
+   mean:"Timing the ECU pulls because it heard detonation. Zero is what you want. On a 1,000-whp E85 build, more than ~1-2° under boost is a real danger sign — back off and find why (heat, lean, fuel).",
+   read:v=>v<0.1?["Clean — 0°","ok"]:v<1?["Trace","warn"]:["Pulling timing — danger","bad"]},
+  {k:"lambda",lab:"Lambda",unit:"λ",max:1.2,
+   mean:"Air/fuel ratio vs. stoichiometric. Below 1 is rich (makes power and cools the charge), above 1 is lean (dangerous under boost). At WOT you command ~0.80; a lean spike under boost is how engines get hurt.",
+   read:v=>v>1.05?["Lean (cruise)","ok"]:v>0.86?["Slightly lean","warn"]:["Rich for power","ok"]},
+  {k:"inj",lab:"Injector duty",unit:"%",max:100,
+   mean:"How much of the time the injectors are held open. E85 needs ~30% more fuel than gas, so duty runs high. Past ~85-90% you're out of injector — no headroom left to add fuel or timing.",
+   read:v=>v<85?["Headroom OK","ok"]:v<=90?["Getting tight","warn"]:["Out of injector","bad"]},
+  {k:"fuel",lab:"Fuel pressure",unit:"psi",max:80,
+   mean:"Must hold steady under wide-open throttle. If it sags as the pump loads up, the engine goes lean exactly when it's working hardest — the #1 thing to watch on a high-power E85 car.",
+   read:v=>v>62?["Holding","ok"]:v>58?["Sagging","warn"]:["Dropping — lean risk","bad"]},
+  {k:"ect",lab:"Coolant (ECT)",unit:"°C",max:130,
+   mean:"Main engine coolant temperature. Normal operating range is roughly 90-105°C. Climbing past that between rounds is your cue to let it cool before the next pass.",
+   read:v=>v<108?["Normal","ok"]:v<118?["Warm","warn"]:["Hot — cool it","bad"]},
+  {k:"ltr",lab:"LTR coolant",unit:"°C",max:80,
+   mean:"The separate low-temp loop that feeds the intercooler. Keeping it low is what keeps intake air cold. It creeps up under sustained boost and heat-soaks in the staging lanes.",
+   read:v=>v<50?["Cool","ok"]:v<62?["Warming","warn"]:["Hot — charge heating","bad"]},
+  {k:"egt",lab:"Exhaust temp",unit:"°C",max:1000,
+   mean:"Exhaust gas temperature — a window into combustion. Too high points at a lean mixture or too much timing. On E85 it generally runs cooler than gas, which is part of why E85 is friendly to boost.",
+   read:v=>v<880?["In band","ok"]:v<940?["High","warn"]:["Too hot — lean/timing","bad"]},
+  {k:"slip",lab:"Rear slip",unit:"%",max:45,
+   mean:"How much faster the driven wheels are turning than the car is moving — measured from wheel-speed channels. A big spike at launch is wheelspin; the fix is launch pressure and track prep, not power.",
+   read:v=>v<12?["Hooked","ok"]:v<25?["Some spin","warn"]:["Spinning","bad"]},
+];
+
+/* ---- mode target states ---- */
+const MODES={
+  idle:  {rpm:850,thr:0},
+  cruise:{rpm:2200,thr:24},
+  wot:   {rpm:6000,thr:100},
+  launch:{rpm:2100,thr:100,launch:true},
+};
+function derive(rpm,thr,launch){
+  const load=thr/100;
+  const boost=Math.max(0, (rpm/6300)*15.8*load - (1-load)*2);
+  const onBoost=boost>2;
+  return {
+    rpm, boost,
+    iat: 38 + boost*1.4 + (onBoost?6:0),
+    lambda: load<0.3 ? 1.0 - load*0.15 : 0.80 + (0.86-0.80)*0, // ~0.80 at WOT
+    inj: 8 + load*(rpm/6300)*82,
+    fuel: 66 - (load>0.8 && rpm>5200 ? (rpm-5200)/700*3 : 0),
+    ect: 92 + load*8,
+    ltr: 34 + boost*0.8,
+    egt: 300 + load*(rpm/6300)*620,
+    slip: launch ? 34 : 0,
+  };
+}
+
+let state={rpm:850,boost:0,iat:38,lambda:1.0,inj:8,fuel:66,ect:92,ltr:34,egt:300,slip:0};
+let mode="idle", thrOverride=null, knockOn=false, sel="boost";
+let pull=null; // {t}
+let blAng=0, afOff=0, clOff=0, cylPhase=0, last=performance.now();
+
+/* ---- build mode buttons ---- */
+const modeDefs=[["idle","Idle"],["cruise","Cruise"],["wot","WOT"],["launch","Launch"]];
+document.getElementById("modes").innerHTML=modeDefs.map(([k,l])=>`<button class="mode${k==='idle'?' active':''}" data-m="${k}">${l}</button>`).join("");
+document.querySelectorAll("#modes button").forEach(b=>b.onclick=()=>{
+  mode=b.dataset.m; pull=null; thrOverride=null;
+  document.getElementById("thr").value=MODES[mode].thr;
+  document.querySelectorAll("#modes button").forEach(x=>x.classList.toggle("active",x===b));
+  document.getElementById("play").textContent="► Play a pull";
+});
+document.getElementById("thr").oninput=e=>{ thrOverride=+e.target.value; pull=null;
+  document.getElementById("play").textContent="► Play a pull"; };
+document.getElementById("knock").onclick=function(){ knockOn=!knockOn;
+  this.style.background=knockOn?C.red:"#222831"; this.style.color=knockOn?"#fff":C.mut; };
+document.getElementById("play").onclick=function(){
+  if(pull){ pull=null; this.textContent="► Play a pull"; mode="idle"; }
+  else { pull={t:0}; this.textContent="■ Stop"; 
+    document.querySelectorAll("#modes button").forEach(x=>x.classList.remove("active")); }
+};
+
+/* ---- cylinders ---- */
+const cylG=document.getElementById("cyls"); let cylEls=[];
+for(let i=0;i<8;i++){ const bank=i<4?0:1; const idx=i%4;
+  const cx=352+idx*26, cy=bank?202:174;
+  const e=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  e.setAttribute("cx",cx); e.setAttribute("cy",cy); e.setAttribute("r",8);
+  e.setAttribute("fill","#3a4450"); cylG.appendChild(e); cylEls.push(e);
+}
+
+/* ---- sensor pips on schematic ---- */
+const PIPS=[
+  {k:"boost",x:382,y:100},{k:"iat",x:300,y:92},{k:"knock",x:400,y:190},
+  {k:"lambda",x:520,y:175},{k:"fuel",x:384,y:104},{k:"ltr",x:300,y:40},
+  {k:"egt",x:545,y:120},{k:"rpm",x:175,y:114},{k:"ect",x:400,y:210},
+];
+const pipsG=document.getElementById("pips");
+PIPS.forEach(pp=>{ const g=document.createElementNS("http://www.w3.org/2000/svg","g");
+  g.style.cursor="pointer"; g.addEventListener("click",()=>select(pp.k));
+  const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  c.setAttribute("cx",pp.x);c.setAttribute("cy",pp.y);c.setAttribute("r",6.5);
+  c.setAttribute("fill","#121419");c.setAttribute("stroke",C.cyan);c.setAttribute("stroke-width",2);
+  c.id="pip-"+pp.k; g.appendChild(c); pipsG.appendChild(g);
+});
+
+/* ---- gauges ---- */
+const gWrap=document.getElementById("gauges");
+gWrap.innerHTML=SENSORS.map(s=>`<div class="g" data-k="${s.k}" id="g-${s.k}">
+  <div class="lab">${s.lab}</div><div><span class="val" id="gv-${s.k}">0</span> <span class="u">${s.unit}</span></div>
+  <div class="bar"><i id="gb-${s.k}"></i></div></div>`).join("");
+document.querySelectorAll("#gauges .g").forEach(g=>g.onclick=()=>select(g.dataset.k));
+
+function colorFor(k,v){ const s=SENSORS.find(x=>x.k===k); const [,st]=s.read(v);
+  return st==="ok"?C.green:st==="warn"?C.yellow:C.red; }
+
+function select(k){ sel=k;
+  document.querySelectorAll("#gauges .g").forEach(g=>g.classList.toggle("sel",g.dataset.k===k));
+  const s=SENSORS.find(x=>x.k===k);
+  document.getElementById("i-name").textContent=s.lab;
+  document.getElementById("i-unit").textContent=s.unit;
+  document.getElementById("i-mean").textContent=s.mean;
+}
+
+/* ---- main loop ---- */
+function lerp(a,b,f){ return a+(b-a)*f; }
+function gear(x){ // sawtooth rpm during a pull
+  if(x<1.1) return 2100+(x/1.1)*4200;
+  const cyc=1.85, p=((x-1.1)%cyc)/cyc; return 4300+p*2000;
+}
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  // determine target
+  let tgt;
+  if(pull){
+    pull.t+=dt; const x=pull.t;
+    if(x>9.5){ pull=null; mode="idle"; document.getElementById("play").textContent="► Play a pull"; }
+    else { const rpm=gear(x); const d=derive(rpm,100,x<1.2);
+      d.iat=44+ x*1.8; d.slip=34*Math.exp(-(((x-0.4)/0.6)**2))+3;
+      tgt=d; }
+  }
+  if(!tgt){ const m=MODES[mode]; const thr=thrOverride!=null?thrOverride:m.thr;
+    let rpm=m.rpm; if(thrOverride!=null) rpm=850+(thrOverride/100)*5450;
+    tgt=derive(rpm,thr,m.launch); }
+  // knock simulation
+  let knockTgt=0;
+  if(knockOn && tgt.boost>6) knockTgt=1.6 + (tgt.iat>60?0.8:0);
+  // ease state
+  const f=1-Math.pow(0.001,dt);
+  state.rpm=lerp(state.rpm,tgt.rpm,f); state.boost=lerp(state.boost,tgt.boost,f);
+  state.iat=lerp(state.iat,tgt.iat,f*0.6); state.lambda=lerp(state.lambda,tgt.lambda,f);
+  state.inj=lerp(state.inj,tgt.inj,f); state.fuel=lerp(state.fuel,tgt.fuel,f);
+  state.ect=lerp(state.ect,tgt.ect,f*0.3); state.ltr=lerp(state.ltr,tgt.ltr,f*0.4);
+  state.egt=lerp(state.egt,tgt.egt,f*0.5); state.slip=lerp(state.slip,tgt.slip,f);
+  state.knock=lerp(state.knock||0,knockTgt,f);
+  // animate schematic
+  const rpmN=state.rpm/6300, airflow=Math.max(0.05,(state.boost/16)*0.8+rpmN*0.2);
+  blAng+=dt*(120+rpmN*1400); afOff-=dt*(60+airflow*420); clOff-=dt*(40+rpmN*120);
+  document.getElementById("blower").setAttribute("transform",`rotate(${blAng} 150 114)`);
+  document.getElementById("blower2").setAttribute("transform",`rotate(${-blAng} 195 114)`);
+  document.getElementById("airflow").setAttribute("stroke-dashoffset",afOff.toFixed(1));
+  document.getElementById("coolant").setAttribute("stroke-dashoffset",clOff.toFixed(1));
+  document.getElementById("coolant2").setAttribute("stroke-dashoffset",clOff.toFixed(1));
+  // exhaust heat color
+  const hot=Math.min(1,(state.egt-300)/640);
+  const hc=`rgb(${Math.round(25+hot*215)},${Math.round(185-hot*150)},${Math.round(204-hot*180)})`;
+  document.getElementById("heatstop").setAttribute("stop-color",hc);
+  // cylinder firing
+  cylPhase+=dt*(state.rpm/60)*4;
+  const fired=Math.floor(cylPhase)%8;
+  cylEls.forEach((e,i)=>{ const on=i===fired && state.rpm>200;
+    e.setAttribute("fill", on?C.amber:"#3a4450"); });
+  // gauges
+  SENSORS.forEach(s=>{ let v=state[s.k]; if(v==null)v=0;
+    const disp = s.k==="lambda"?v.toFixed(2):(s.k==="knock"?v.toFixed(1):Math.round(v));
+    document.getElementById("gv-"+s.k).textContent=disp;
+    const col=colorFor(s.k,v);
+    const bar=document.getElementById("gb-"+s.k);
+    bar.style.width=Math.max(0,Math.min(100,(v/s.max)*100))+"%"; bar.style.background=col;
+    const pip=document.getElementById("pip-"+s.k); if(pip) pip.setAttribute("stroke",col);
+  });
+  document.getElementById("rpmtag").textContent=Math.round(state.rpm)+" rpm";
+  // info panel live
+  const s=SENSORS.find(x=>x.k===sel); let v=state[sel]; if(v==null)v=0;
+  const [txt,st]=s.read(v);
+  document.getElementById("i-val").textContent= sel==="lambda"?v.toFixed(2):(sel==="knock"?v.toFixed(1):Math.round(v));
+  const col=st==="ok"?C.green:st==="warn"?C.yellow:C.red;
+  const b=document.getElementById("i-badge"); b.textContent=txt; b.style.background=col+"22"; b.style.color=col;
+  document.getElementById("i-read").textContent="Now: "+txt+" ("+(sel==="lambda"?v.toFixed(2):Math.round(v))+" "+s.unit+")";
+  requestAnimationFrame(frame);
+}
+select("boost");
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

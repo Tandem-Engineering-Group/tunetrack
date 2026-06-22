@@ -1,0 +1,31 @@
+{
+  "_note": "VCM Scanner math channels -- CONFIRM token names + syntax against your installed version.",
+  "ready_go": {
+    "description": "1 when every controllable pre-stage variable is in its window, else 0.",
+    "expression": "(({SAE.ECT.C}>=82)&&({SAE.ECT.C}<=98)) && ({SAE.IAT.C}<50) && ({Fuel.RailPressure.kPa}>550) && (({LTR.Coolant.C}>=30)&&({LTR.Coolant.C}<=55)) ? 1 : 0",
+    "gauge": "single large tile, green @ 1 / red @ 0"
+  },
+  "rear_slip_pct": {
+    "description": "Live launch slip: driven (rear) vs non-driven (front) wheel speed.",
+    "expression": "((({Wheel.Speed.RL.MPH}+{Wheel.Speed.RR.MPH})/2) - (({Wheel.Speed.FL.MPH}+{Wheel.Speed.FR.MPH})/2)) / max((({Wheel.Speed.FL.MPH}+{Wheel.Speed.FR.MPH})/2),1) * 100",
+    "gauge": "line gauge, marker at spin threshold ~3-5%"
+  },
+  "window": {
+    "ect_c": [
+      82.0,
+      98.0
+    ],
+    "aircharge_temp_c": [
+      null,
+      50.0
+    ],
+    "fuel_press_kpa": [
+      550.0,
+      null
+    ],
+    "ltr_coolant_c": [
+      30.0,
+      55.0
+    ]
+  }
+}

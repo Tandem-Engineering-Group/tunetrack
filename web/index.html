@@ -23,10 +23,12 @@
   .cd{font-size:12.5px;color:var(--mut);line-height:1.5}
   .go{font-size:12px;font-weight:700;color:var(--cyan);margin-top:10px}
   .foot{font-size:11px;color:var(--mut);margin-top:22px;line-height:1.6}
+  .banner{background:#3a2a10;border:1px solid var(--amber);color:var(--yellow);font-size:12px;padding:8px 12px;border-radius:9px;margin-bottom:14px;text-align:center}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="banner">⚠ Running on <b>SYNTHETIC</b> demo data — generated, not measured. Read-only to the PCM; no calibration is ever written or flashed.</div>
   <div class="head">
     <div class="logo">⚡</div>
     <div><div class="eyebrow">TuneTrack</div><h1>Portal hub</h1></div>
@@ -63,7 +65,7 @@
     </a>
   </div>
 
-  <div class="foot">All four portals share one data layer. Today they run on seed data; in the build they read <b>tunetrack.db</b> (read-only) as the pipeline fills it. Nothing here writes to the PCM.</div>
+  <div class="foot">All four portals share one read-only data layer — the pipeline's <b>web/data.json</b> export (written by component 13 from <b>tunetrack.db</b>). Today it carries SYNTHETIC demo data; drop in a real VCM Scanner log and re-run the pipeline to populate it. Nothing here writes to the PCM.</div>
 </div>
 </body>
 </html>

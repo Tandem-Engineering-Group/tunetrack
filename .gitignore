@@ -5,3 +5,7 @@ tunetrack.db
 samples/*.csv
 !samples/.gitkeep
 .DS_Store
+# Real paths config (machine-specific Teams/SharePoint paths); only the example template is committed
+config.yaml
+# Local pipeline output dir (real outputs go to the Teams reports_dir)
+reports_out/

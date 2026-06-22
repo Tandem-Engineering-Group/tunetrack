@@ -110,7 +110,6 @@ def _engine_snapshot(df: pd.DataFrame) -> list:
 SOURCE_META = {
     "vcm":      {"label": "VCM Scanner", "device": "HP Tuners MPVI3 -> PCM", "color": "#19B9CC"},
     "timeslip": {"label": "Timeslip / Dragy", "device": "track card + GPS", "color": "#F2640A"},
-    "kestrel":  {"label": "Kestrel", "device": "weather meter / density alt", "color": "#5BC8F5"},
     "pyro":     {"label": "Pyrometer", "device": "tire tread temps", "color": "#F472B6"},
     "manual":   {"label": "Manual / build", "device": "entered by hand", "color": "#9AA5B1"},
     "toadd":    {"label": "Not logged yet", "device": "add to VCM layout", "color": "#556070"},
@@ -124,9 +123,16 @@ def _sensor_sources(run: dict, build: dict | None) -> list:
     def num(v, nd=1):
         return round(float(v), nd) if isinstance(v, (int, float)) else v
 
-    # VCM Scanner — the logged PCM channels (peak-pass snapshot)
+    # VCM Scanner — logged PCM channels + air/DA (now computed from the log, no Kestrel)
     vcm = [{"label": s["label"], "value": s["value_at_peak"], "unit": s["unit"]}
            for s in run.get("engine_snapshot", [])]
+    wx = run.get("weather") or {}
+    if wx.get("temp_c") is not None:
+        vcm.append({"label": "Ambient air", "value": num(wx["temp_c"]), "unit": "C"})
+    if wx.get("baro_kpa") is not None:
+        vcm.append({"label": "Barometric", "value": num(wx["baro_kpa"]), "unit": "kPa"})
+    if wx.get("density_altitude_ft") is not None:
+        vcm.append({"label": "Density alt (calc)", "value": num(wx["density_altitude_ft"]), "unit": "ft"})
     if vcm:
         groups.append({"key": "vcm", "items": vcm})
 
@@ -139,15 +145,6 @@ def _sensor_sources(run: dict, build: dict | None) -> list:
     ] if ts.get(k) is not None]
     if tsi:
         groups.append({"key": "timeslip", "items": tsi})
-
-    # Kestrel — air / density altitude
-    wx = run.get("weather") or {}
-    wxi = [{"label": lab, "value": num(wx[k]), "unit": u} for lab, k, u in [
-        ("Air temp", "temp_c", "C"), ("Humidity", "humidity_pct", "%"),
-        ("Baro", "baro_kpa", "kPa"), ("Density alt", "density_altitude_ft", "ft"),
-    ] if wx.get(k) is not None]
-    if wxi:
-        groups.append({"key": "kestrel", "items": wxi})
 
     # Pyrometer — tread temps
     tire = run.get("tire") or {}

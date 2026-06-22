@@ -25,6 +25,7 @@ oil_press_kpa:       ["Engine Oil Pressure"]
 ltr_coolant_c:       ["LTR Coolant Temp", "Low Temp Rad Coolant"]
 ltr_pump_rpm:        ["LTR Pump Speed"]
 aircharge_temp_c:    ["Aircharge Temperature", "Manifold Air Temp", "IAT"]
+ambient_temp_c:      ["Ambient Air Temp"]   # outside air -> density altitude (replaces the Kestrel)
 egt_c:               ["Exhaust Gas Temperature"]
 
 # --- spark / knock ---

@@ -24,22 +24,35 @@ ATM_KPA = 101.3
 OUT = ROOT / "web" / "data.json"
 
 # Channel -> (label, plain-English meaning, unit) for the engine portal.
+# Order roughly follows the airflow path. Only channels present in the log are shown.
 SENSORS = {
     "engine_rpm": ("Engine speed", "Crankshaft RPM — how fast the engine is turning.", "rpm"),
     "vehicle_speed": ("Vehicle speed", "Road speed from the non-driven wheels.", "mph"),
-    "map_kpa": ("Manifold pressure", "Absolute pressure in the intake; above ~101 kPa is boost.", "kPa"),
+    "trans_gear": ("Gear", "Current trans gear — context for where boost/knock happen in the pull.", ""),
+    "baro_kpa": ("Barometric", "Ambient air pressure; boost is measured above this, not a fixed 101 kPa.", "kPa"),
+    "map_kpa": ("Manifold pressure", "Absolute pressure in the intake; above barometric is boost.", "kPa"),
+    "boost_psi": ("Boost (true)", "MAP minus barometric — the real boost the blower is making.", "psi"),
+    "sc_bypass_pos": ("Blower bypass", "Supercharger bypass position; closes to build boost, opens off-throttle.", "%"),
+    "total_airflow": ("Airflow", "Total mass airflow into the engine — load indicator.", "g/s"),
     "tps_pct": ("Throttle", "Driver throttle command; 100% is wide open.", "%"),
-    "knock_retard_total": ("Knock retard", "Timing the PCM pulled to stop detonation — want ~0.", "deg"),
+    "aircharge_temp_c": ("Intake air temp", "Charge-air temp after the blower/intercooler — heat soak risk.", "deg C"),
+    "actual_spark_deg": ("Actual spark", "Timing the PCM is actually running right now.", "deg"),
+    "mbt_spark_deg": ("MBT spark", "Best-torque timing target; the gap to Actual Spark is your knock margin.", "deg"),
+    "knock_retard_total": ("Knock retard", "Timing pulled to stop detonation — want ~0.", "deg"),
+    "knock_sensor_1": ("Knock sensor", "Raw knock-sensor activity; spikes flag detonation events.", "V"),
     "eq_commanded": ("Commanded EQ", "Air/fuel the tune is asking for; >1 is rich.", "EQ"),
     "wb_eq_1": ("Measured EQ", "What the wideband actually sees; should track command.", "EQ"),
-    "inj_duty_pct": ("Injector duty", "How long the injectors stay open — near 100% is maxed.", "%"),
     "fuel_press_kpa": ("Fuel pressure", "Rail pressure; a drop under load means the pump is signing off.", "kPa"),
+    "fuel_press_desired_kpa": ("Desired fuel press", "Commanded rail pressure — compare to actual to catch a fueling shortfall.", "kPa"),
+    "inj_duty_pct": ("Injector duty", "Derived from pulse width; near 100% means no fuel headroom left.", "%"),
+    "egt_c": ("Exhaust temp", "Exhaust gas temperature — fueling/timing heat indicator.", "deg C"),
     "ect_c": ("Coolant temp", "Engine coolant temperature.", "deg C"),
-    "aircharge_temp_c": ("Intake air temp", "Charge-air temp after the blower/intercooler — heat soak risk.", "deg C"),
     "ltr_coolant_c": ("LTR coolant", "Low-temp radiator loop feeding the intercooler.", "deg C"),
+    "ltr_pump_rpm": ("LTR pump", "Intercooler coolant pump speed.", "rpm"),
     "oil_temp_c": ("Oil temp", "Engine oil temperature.", "deg C"),
     "oil_press_kpa": ("Oil pressure", "Engine oil pressure.", "kPa"),
-    "egt_c": ("Exhaust temp", "Exhaust gas temperature — fueling/timing heat indicator.", "deg C"),
+    "torque_actual": ("Actual torque", "Engine torque estimate; vs Expected shows if a limiter is holding it back.", "N m"),
+    "cm_voltage": ("System voltage", "Control-module supply voltage.", "V"),
 }
 
 
@@ -52,21 +65,30 @@ def _series(df: pd.DataFrame, n: int = 120) -> dict:
         return {}
     idx = list(range(0, len(df), max(1, len(df) // n)))
     s = df.iloc[idx]
-    boost = ((s["map_kpa"] - ATM_KPA) / 6.895).round(1)
-    front = (s["wheel_speed_fl"] + s["wheel_speed_fr"]) / 2
-    rear = (s["wheel_speed_rl"] + s["wheel_speed_rr"]) / 2
-    slip = (((rear - front) / front.where(front > 3) * 100)).round(1).fillna(0)
+
+    def col(c, nd):
+        return s[c].round(nd).tolist() if c in s.columns else None
+
+    boost = (s["boost_psi"] if "boost_psi" in s.columns else (s["map_kpa"] - ATM_KPA) / 6.895).round(1)
+    ws = ["wheel_speed_fl", "wheel_speed_fr", "wheel_speed_rl", "wheel_speed_rr"]
+    if all(c in s.columns for c in ws):
+        front = (s["wheel_speed_fl"] + s["wheel_speed_fr"]) / 2
+        rear = (s["wheel_speed_rl"] + s["wheel_speed_rr"]) / 2
+        slip = (((rear - front) / front.where(front > 3) * 100)).round(1).fillna(0).tolist()
+    else:
+        slip = [None] * len(s)   # no wheel-speed channels -> live slip unavailable
     return {
         "t": s["t_rel"].round(2).tolist(),
         "engine_rpm": s["engine_rpm"].round(0).tolist(),
-        "vehicle_speed": s["vehicle_speed"].round(1).tolist(),
+        "vehicle_speed": col("vehicle_speed", 1),
         "boost_psi": boost.tolist(),
-        "knock": s["knock_retard_total"].round(2).tolist(),
-        "eq_cmd": s["eq_commanded"].round(3).tolist(),
-        "eq_meas": s["wb_eq_1"].round(3).tolist(),
-        "inj_duty": s["inj_duty_pct"].round(1).tolist(),
-        "fuel_press": s["fuel_press_kpa"].round(0).tolist(),
-        "rear_slip_pct": slip.tolist(),
+        "knock": col("knock_retard_total", 2),
+        "actual_spark": col("actual_spark_deg", 1),
+        "eq_cmd": col("eq_commanded", 3),
+        "eq_meas": col("wb_eq_1", 3),
+        "inj_duty": col("inj_duty_pct", 1),
+        "fuel_press": col("fuel_press_kpa", 0),
+        "rear_slip_pct": slip,
     }
 
 
@@ -82,6 +104,77 @@ def _engine_snapshot(df: pd.DataFrame) -> list:
             out.append({"channel": ch, "label": label, "meaning": meaning,
                         "unit": unit, "value_at_peak": round(float(row[ch]), 2)})
     return out
+
+
+# Where each value comes from -> legend label, device, and colour (for the portal).
+SOURCE_META = {
+    "vcm":      {"label": "VCM Scanner", "device": "HP Tuners MPVI3 -> PCM", "color": "#19B9CC"},
+    "timeslip": {"label": "Timeslip / Dragy", "device": "track card + GPS", "color": "#F2640A"},
+    "kestrel":  {"label": "Kestrel", "device": "weather meter / density alt", "color": "#5BC8F5"},
+    "pyro":     {"label": "Pyrometer", "device": "tire tread temps", "color": "#F472B6"},
+    "manual":   {"label": "Manual / build", "device": "entered by hand", "color": "#9AA5B1"},
+    "toadd":    {"label": "Not logged yet", "device": "add to VCM layout", "color": "#556070"},
+}
+
+
+def _sensor_sources(run: dict, build: dict | None) -> list:
+    """Group every value by the device it comes from, for the colour-coded map."""
+    groups = []
+
+    def num(v, nd=1):
+        return round(float(v), nd) if isinstance(v, (int, float)) else v
+
+    # VCM Scanner — the logged PCM channels (peak-pass snapshot)
+    vcm = [{"label": s["label"], "value": s["value_at_peak"], "unit": s["unit"]}
+           for s in run.get("engine_snapshot", [])]
+    if vcm:
+        groups.append({"key": "vcm", "items": vcm})
+
+    # Timeslip / Dragy — the run card
+    ts = run.get("timeslip") or {}
+    tsi = [{"label": lab, "value": ts[k], "unit": u} for lab, k, u in [
+        ("Reaction", "rt", "s"), ("60-ft", "sixty", "s"), ("330-ft", "threethirty", "s"),
+        ("1/8 ET", "eighth_et", "s"), ("1/8 MPH", "eighth_mph", "mph"),
+        ("1000-ft", "thousand", "s"), ("1/4 ET", "quarter_et", "s"), ("1/4 MPH", "quarter_mph", "mph"),
+    ] if ts.get(k) is not None]
+    if tsi:
+        groups.append({"key": "timeslip", "items": tsi})
+
+    # Kestrel — air / density altitude
+    wx = run.get("weather") or {}
+    wxi = [{"label": lab, "value": num(wx[k]), "unit": u} for lab, k, u in [
+        ("Air temp", "temp_c", "C"), ("Humidity", "humidity_pct", "%"),
+        ("Baro", "baro_kpa", "kPa"), ("Density alt", "density_altitude_ft", "ft"),
+    ] if wx.get(k) is not None]
+    if wxi:
+        groups.append({"key": "kestrel", "items": wxi})
+
+    # Pyrometer — tread temps
+    tire = run.get("tire") or {}
+    pyi = [{"label": lab, "value": num(tire[k]), "unit": "C"} for lab, k in [
+        ("R in", "pyro_r_in"), ("R ctr", "pyro_r_center"), ("R out", "pyro_r_out"),
+        ("L in", "pyro_l_in"), ("L ctr", "pyro_l_center"), ("L out", "pyro_l_out"),
+    ] if tire.get(k) is not None]
+    if pyi:
+        groups.append({"key": "pyro", "items": pyi})
+
+    # Manual / build — gauges + the combo sheet
+    mi = [{"label": lab, "value": num(tire[k]), "unit": "psi"} for lab, k in
+          [("Cold psi F", "cold_psi_f"), ("Cold psi R", "cold_psi_r")] if tire.get(k) is not None]
+    if build:
+        for lab, k, u in [("Upper pulley", "upper_pulley", ""), ("Pump", "pump", ""),
+                          ("Injectors", "injectors", ""), ("E85", "e85_pct", "%"),
+                          ("Boost target", "boost_target_psi", "psi")]:
+            if build.get(k) is not None:
+                mi.append({"label": lab, "value": num(build[k]), "unit": u})
+    if mi:
+        groups.append({"key": "manual", "items": mi})
+
+    # Not logged yet — what to add to the VCM layout to unlock more
+    if not run.get("live_slip", False):
+        groups.append({"key": "toadd", "items": [
+            {"label": "Wheel speed RL/RR/FL/FR", "value": "—", "unit": "add for live slip"}]})
+    return groups
 
 
 def _maintenance(conn) -> list:
@@ -138,15 +231,19 @@ def build_report(conn) -> dict:
         tire = _d(conn.execute("SELECT * FROM tire_state WHERE tire_id=?", (ev.get("tire_id"),)).fetchone()) if ev.get("tire_id") else None
         track = _d(conn.execute("SELECT * FROM track_state WHERE track_id=?", (ev.get("track_id"),)).fetchone()) if ev.get("track_id") else None
         df = run_frame(conn, rid)
-        runs.append({
+        ro = {
             "run_id": rid, "ts_start": r["ts_start"], "ts_end": r["ts_end"], "notes": r["notes"],
             "scores": {"overall": ev.get("score"),
                        "power": power.get("score"), "traction": traction.get("score")},
             "flags": flags, "power": power, "traction": traction,
             "readiness": greenlight_readiness(conn, rid),
+            "live_slip": all(c in df.columns for c in
+                             ["wheel_speed_fl", "wheel_speed_fr", "wheel_speed_rl", "wheel_speed_rr"]),
             "timeslip": slip, "weather": wx, "tire": tire, "track": track,
             "series": _series(df), "engine_snapshot": _engine_snapshot(df),
-        })
+        }
+        ro["sensor_sources"] = _sensor_sources(ro, build)
+        runs.append(ro)
 
     analysis = _d(conn.execute("SELECT * FROM analysis_results ORDER BY analysis_id DESC LIMIT 1").fetchone())
     if analysis:
@@ -163,6 +260,7 @@ def build_report(conn) -> dict:
             "car": "2020 Dodge Challenger SRT Hellcat Redeye",
         },
         "build_state": build,
+        "sources": SOURCE_META,
         "runs": runs,
         "analysis": analysis,
         "forecast": forecast,

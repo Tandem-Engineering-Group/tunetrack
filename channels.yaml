@@ -1,25 +1,82 @@
-# Canonical channel name -> known VCM Scanner variants. Finalize against the real CSV header.
-engine_rpm:         ["Engine RPM"]
-vehicle_speed:      ["Vehicle Speed"]
-ect_c:              ["Engine Coolant Temp"]
-oil_temp_c:         ["Engine Oil Temp"]
-oil_press_kpa:      ["Engine Oil Pressure"]
-ltr_coolant_c:      ["LTR Coolant Temp", "Low Temp Rad Coolant"]
-ltr_pump_rpm:       ["LTR Pump Speed"]
-aircharge_temp_c:   ["Aircharge Temperature", "IAT"]
-map_kpa:            ["Manifold Absolute Pressure", "Sensed MAP"]
-tps_pct:            ["Throttle Position (SAE)", "TPS"]
-knock_retard_total: ["Total Knock Retard"]
-eq_commanded:       ["Equivalence Ratio Commanded"]
-wb_eq_1:            ["WB EQ Ratio 1 (SAE) (2)", "WB EQ Ratio 1"]
-wb_eq_2:            ["WB EQ Ratio 2"]
-inj_duty_pct:       ["Injector Duty", "INJ Duty"]
-egt_c:              ["Exhaust Gas Temperature"]
-stft_b1:            ["Short Term Fuel Trim Bank 1"]
-ltft_b1:            ["Long Term Fuel Trim Bank 1"]
-# REQUIRED additions — confirm these are in your VCM layout:
-fuel_press_kpa:     ["Fuel Rail Pressure", "Fuel Pressure"]
-wheel_speed_rl:     ["Wheel Speed RL", "Rear Left Wheel Speed"]
-wheel_speed_rr:     ["Wheel Speed RR", "Rear Right Wheel Speed"]
-wheel_speed_fl:     ["Wheel Speed FL", "Front Left Wheel Speed"]
-wheel_speed_fr:     ["Wheel Speed FR", "Front Right Wheel Speed"]
+# Canonical channel name -> known VCM Scanner variants.
+# Finalized against the channel names found in the real HP Tuners logs
+# (SCAN LOG 1/2, Alea McLellan, 2026-06). match_channel() also strips a trailing
+# "(SAE)"/unit parenthetical, so "Fuel Pressure (SAE)" still maps to fuel_press_kpa.
+
+# --- core / dynamics ---
+engine_rpm:          ["Engine RPM"]
+vehicle_speed:       ["Vehicle Speed"]
+tps_pct:             ["Throttle Position (SAE)", "Throttle Position Sensor", "TPS"]
+trans_gear:          ["Trans Current Gear"]
+trans_gear_cmd:      ["Trans Commanded Gear"]
+shift_id:            ["Shift ID"]
+
+# --- pressures / air ---
+map_kpa:             ["Manifold Absolute Pressure", "Sensed MAP", "Manifold Absolute Pressure - Hi-Res"]
+baro_kpa:            ["Barometric Pressure"]
+total_airflow:       ["Total Airflow"]
+cyl_airmass:         ["Cylinder Airmass"]
+sc_bypass_pos:       ["Supercharger Bypass Pos 1", "Supercharger Bypass Position"]
+
+# --- temps ---
+ect_c:               ["Engine Coolant Temp"]
+oil_temp_c:          ["Engine Oil Temp"]
+oil_press_kpa:       ["Engine Oil Pressure"]
+ltr_coolant_c:       ["LTR Coolant Temp", "Low Temp Rad Coolant"]
+ltr_pump_rpm:        ["LTR Pump Speed"]
+aircharge_temp_c:    ["Aircharge Temperature", "Manifold Air Temp", "IAT"]
+egt_c:               ["Exhaust Gas Temperature"]
+
+# --- spark / knock ---
+actual_spark_deg:    ["Actual Spark"]
+mbt_spark_deg:       ["MBT Advance"]
+knock_retard_total:  ["Total Knock Retard"]
+knock_retard_long:   ["Knock Retard Long Term"]
+knock_retard_short:  ["Knock Retard Short Term"]
+knock_sensor_1:      ["Knock Sensor 1"]
+knock_sensor_2:      ["Knock Sensor 2"]
+
+# --- fueling ---
+eq_commanded:        ["Equivalence Ratio Commanded"]
+wb_eq_1:             ["WB EQ Ratio 1 (SAE) (2)", "WB EQ Ratio 1"]
+wb_eq_2:             ["WB EQ Ratio 2"]
+wb_eq_5:             ["WB EQ Ratio 5 (SAE) (2)", "WB EQ Ratio 5"]
+fuel_press_kpa:      ["Fuel Pressure (SAE)", "Fuel Rail Pressure", "Fuel Pressure"]
+fuel_press_desired_kpa: ["Desired Fuel Pressure"]
+fuel_flow_rate:      ["Fuel Flow Rate"]
+stft_b1:             ["Short Term Fuel Trim Bank 1 (SAE)", "Short Term Fuel Trim Bank 1"]
+ltft_b1:             ["Long Term Fuel Trim Bank 1 (SAE)", "Long Term Fuel Trim Bank 1"]
+stft_b2:             ["Short Term Fuel Trim Bank 2 (SAE)", "Short Term Fuel Trim Bank 2"]
+ltft_b2:             ["Long Term Fuel Trim Bank 2 (SAE)", "Long Term Fuel Trim Bank 2"]
+# injector pulse width per cylinder -> pipeline derives inj_duty_pct from these
+inj_pw_1:            ["Injector Pulse Width Cyl 1"]
+inj_pw_2:            ["Injector Pulse Width Cyl 2"]
+inj_pw_3:            ["Injector Pulse Width Cyl 3"]
+inj_pw_4:            ["Injector Pulse Width Cyl 4"]
+inj_pw_5:            ["Injector Pulse Width Cyl 5"]
+inj_pw_6:            ["Injector Pulse Width Cyl 6"]
+inj_pw_7:            ["Injector Pulse Width Cyl 7"]
+inj_pw_8:            ["Injector Pulse Width Cyl 8"]
+inj_duty_pct:        ["Injector Duty", "INJ Duty"]   # used directly if logged; else derived from PW
+
+# --- torque / electrical / misc ---
+torque_actual:       ["Actual Torque"]
+torque_expected:     ["Expected Torque"]
+torque_demand:       ["Driver Demand Torque"]
+cm_voltage:          ["Control Module Voltage (SAE)", "Control Module Voltage"]
+
+# --- misfire per cylinder ---
+misfire_1:           ["Misfire Current Cylinder #1"]
+misfire_2:           ["Misfire Current Cylinder #2"]
+misfire_3:           ["Misfire Current Cylinder #3"]
+misfire_4:           ["Misfire Current Cylinder #4"]
+misfire_5:           ["Misfire Current Cylinder #5"]
+misfire_6:           ["Misfire Current Cylinder #6"]
+misfire_7:           ["Misfire Current Cylinder #7"]
+misfire_8:           ["Misfire Current Cylinder #8"]
+
+# --- traction (NOT in the current logs; add to the VCM layout to enable live slip) ---
+wheel_speed_rl:      ["Wheel Speed RL", "Rear Left Wheel Speed"]
+wheel_speed_rr:      ["Wheel Speed RR", "Rear Right Wheel Speed"]
+wheel_speed_fl:      ["Wheel Speed FL", "Front Left Wheel Speed"]
+wheel_speed_fr:      ["Wheel Speed FR", "Front Right Wheel Speed"]

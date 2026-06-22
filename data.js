@@ -1,6 +1,6 @@
 window.TUNETRACK_DATA = {
   "meta": {
-    "generated_at": "2026-06-22 17:44:33.310037",
+    "generated_at": "2026-06-22 18:04:55.139108",
     "data_source": "SYNTHETIC",
     "disclaimer": "SYNTHETIC demo data \u2014 generated, not measured. Read-only; no calibration is written or flashed.",
     "car": "2020 Dodge Challenger SRT Hellcat Redeye"
@@ -45,6 +45,90 @@ window.TUNETRACK_DATA = {
       "label": "Not logged yet",
       "device": "add to VCM layout",
       "color": "#556070"
+    }
+  },
+  "acquisition": [
+    {
+      "device": "VCM Scanner (MPVI3)",
+      "source": "vcm",
+      "status": "have",
+      "measures": "Engine / power / safety channels, barometric, ambient temp, vehicle speed",
+      "comms": "OBD-II port -> vehicle CAN bus -> MPVI3 -> USB (Surface)",
+      "transfer": ".hpl log -> export CSV -> OneDrive/SharePoint -> 01_Inbox"
+    },
+    {
+      "device": "Dragy",
+      "source": "timeslip",
+      "status": "have",
+      "measures": "ET, trap, 0-60, GPS ground speed (slip reference)",
+      "comms": "GPS satellites -> device -> Bluetooth (phone app)",
+      "transfer": "export CSV -> run folder / 01_Inbox"
+    },
+    {
+      "device": "Timeslip (track)",
+      "source": "timeslip",
+      "status": "have",
+      "measures": "RT, 60-ft, 330, 1/8 & 1/4 ET + MPH",
+      "comms": "track timing beams -> printed card",
+      "transfer": "photo -> OCR / manual entry"
+    },
+    {
+      "device": "Pyrometer",
+      "source": "pyro",
+      "status": "have",
+      "measures": "Tire tread temps (cross-tread, in/ctr/out)",
+      "comms": "handheld probe, manual read",
+      "transfer": "hand-entered on the build/manual sheet"
+    },
+    {
+      "device": "Manual / build sheet",
+      "source": "manual",
+      "status": "have",
+      "measures": "Combo (pulley/pump/injectors/E85%), tire pressures, set tracking",
+      "comms": "human",
+      "transfer": "entered by hand"
+    },
+    {
+      "device": "Wheel-speed channels",
+      "source": "toadd",
+      "status": "check",
+      "measures": "Per-wheel speed -> live launch slip",
+      "comms": "ABS/TCM module -> CAN bus -> VCM Scanner (only if exposed)",
+      "transfer": "VCM Scanner: Add Channel -> search 'wheel'; if present, add to the layout"
+    },
+    {
+      "device": "Hygrometer (~$20)",
+      "source": "manual",
+      "status": "buy",
+      "measures": "Relative humidity (refines density altitude)",
+      "comms": "handheld, manual read",
+      "transfer": "OPTIONAL -- humidity is otherwise assumed; DA is only weakly sensitive"
+    },
+    {
+      "device": "Kestrel weather meter",
+      "source": "vcm",
+      "status": "dropped",
+      "measures": "Air temp / baro / humidity / density altitude",
+      "comms": "handheld weather meter",
+      "transfer": "REPLACED -- density altitude now computed from the log (baro + ambient temp)"
+    }
+  ],
+  "acq_status": {
+    "have": {
+      "label": "In use",
+      "color": "#3FCF6B"
+    },
+    "check": {
+      "label": "To check",
+      "color": "#F2B705"
+    },
+    "buy": {
+      "label": "To buy",
+      "color": "#19B9CC"
+    },
+    "dropped": {
+      "label": "Dropped",
+      "color": "#8A95A1"
     }
   },
   "runs": [

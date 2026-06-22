@@ -106,6 +106,77 @@ def _engine_snapshot(df: pd.DataFrame) -> list:
     return out
 
 
+# Where each value comes from -> legend label, device, and colour (for the portal).
+SOURCE_META = {
+    "vcm":      {"label": "VCM Scanner", "device": "HP Tuners MPVI3 -> PCM", "color": "#19B9CC"},
+    "timeslip": {"label": "Timeslip / Dragy", "device": "track card + GPS", "color": "#F2640A"},
+    "kestrel":  {"label": "Kestrel", "device": "weather meter / density alt", "color": "#5BC8F5"},
+    "pyro":     {"label": "Pyrometer", "device": "tire tread temps", "color": "#F472B6"},
+    "manual":   {"label": "Manual / build", "device": "entered by hand", "color": "#9AA5B1"},
+    "toadd":    {"label": "Not logged yet", "device": "add to VCM layout", "color": "#556070"},
+}
+
+
+def _sensor_sources(run: dict, build: dict | None) -> list:
+    """Group every value by the device it comes from, for the colour-coded map."""
+    groups = []
+
+    def num(v, nd=1):
+        return round(float(v), nd) if isinstance(v, (int, float)) else v
+
+    # VCM Scanner — the logged PCM channels (peak-pass snapshot)
+    vcm = [{"label": s["label"], "value": s["value_at_peak"], "unit": s["unit"]}
+           for s in run.get("engine_snapshot", [])]
+    if vcm:
+        groups.append({"key": "vcm", "items": vcm})
+
+    # Timeslip / Dragy — the run card
+    ts = run.get("timeslip") or {}
+    tsi = [{"label": lab, "value": ts[k], "unit": u} for lab, k, u in [
+        ("Reaction", "rt", "s"), ("60-ft", "sixty", "s"), ("330-ft", "threethirty", "s"),
+        ("1/8 ET", "eighth_et", "s"), ("1/8 MPH", "eighth_mph", "mph"),
+        ("1000-ft", "thousand", "s"), ("1/4 ET", "quarter_et", "s"), ("1/4 MPH", "quarter_mph", "mph"),
+    ] if ts.get(k) is not None]
+    if tsi:
+        groups.append({"key": "timeslip", "items": tsi})
+
+    # Kestrel — air / density altitude
+    wx = run.get("weather") or {}
+    wxi = [{"label": lab, "value": num(wx[k]), "unit": u} for lab, k, u in [
+        ("Air temp", "temp_c", "C"), ("Humidity", "humidity_pct", "%"),
+        ("Baro", "baro_kpa", "kPa"), ("Density alt", "density_altitude_ft", "ft"),
+    ] if wx.get(k) is not None]
+    if wxi:
+        groups.append({"key": "kestrel", "items": wxi})
+
+    # Pyrometer — tread temps
+    tire = run.get("tire") or {}
+    pyi = [{"label": lab, "value": num(tire[k]), "unit": "C"} for lab, k in [
+        ("R in", "pyro_r_in"), ("R ctr", "pyro_r_center"), ("R out", "pyro_r_out"),
+        ("L in", "pyro_l_in"), ("L ctr", "pyro_l_center"), ("L out", "pyro_l_out"),
+    ] if tire.get(k) is not None]
+    if pyi:
+        groups.append({"key": "pyro", "items": pyi})
+
+    # Manual / build — gauges + the combo sheet
+    mi = [{"label": lab, "value": num(tire[k]), "unit": "psi"} for lab, k in
+          [("Cold psi F", "cold_psi_f"), ("Cold psi R", "cold_psi_r")] if tire.get(k) is not None]
+    if build:
+        for lab, k, u in [("Upper pulley", "upper_pulley", ""), ("Pump", "pump", ""),
+                          ("Injectors", "injectors", ""), ("E85", "e85_pct", "%"),
+                          ("Boost target", "boost_target_psi", "psi")]:
+            if build.get(k) is not None:
+                mi.append({"label": lab, "value": num(build[k]), "unit": u})
+    if mi:
+        groups.append({"key": "manual", "items": mi})
+
+    # Not logged yet — what to add to the VCM layout to unlock more
+    if not run.get("live_slip", False):
+        groups.append({"key": "toadd", "items": [
+            {"label": "Wheel speed RL/RR/FL/FR", "value": "—", "unit": "add for live slip"}]})
+    return groups
+
+
 def _maintenance(conn) -> list:
     today = dt.date.fromisoformat(DEMO_TODAY)
     n_runs = conn.execute("SELECT COUNT(*) AS n FROM runs").fetchone()["n"]
@@ -160,7 +231,7 @@ def build_report(conn) -> dict:
         tire = _d(conn.execute("SELECT * FROM tire_state WHERE tire_id=?", (ev.get("tire_id"),)).fetchone()) if ev.get("tire_id") else None
         track = _d(conn.execute("SELECT * FROM track_state WHERE track_id=?", (ev.get("track_id"),)).fetchone()) if ev.get("track_id") else None
         df = run_frame(conn, rid)
-        runs.append({
+        ro = {
             "run_id": rid, "ts_start": r["ts_start"], "ts_end": r["ts_end"], "notes": r["notes"],
             "scores": {"overall": ev.get("score"),
                        "power": power.get("score"), "traction": traction.get("score")},
@@ -170,7 +241,9 @@ def build_report(conn) -> dict:
                              ["wheel_speed_fl", "wheel_speed_fr", "wheel_speed_rl", "wheel_speed_rr"]),
             "timeslip": slip, "weather": wx, "tire": tire, "track": track,
             "series": _series(df), "engine_snapshot": _engine_snapshot(df),
-        })
+        }
+        ro["sensor_sources"] = _sensor_sources(ro, build)
+        runs.append(ro)
 
     analysis = _d(conn.execute("SELECT * FROM analysis_results ORDER BY analysis_id DESC LIMIT 1").fetchone())
     if analysis:
@@ -187,6 +260,7 @@ def build_report(conn) -> dict:
             "car": "2020 Dodge Challenger SRT Hellcat Redeye",
         },
         "build_state": build,
+        "sources": SOURCE_META,
         "runs": runs,
         "analysis": analysis,
         "forecast": forecast,

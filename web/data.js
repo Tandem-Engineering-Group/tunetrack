@@ -1,6 +1,6 @@
 window.TUNETRACK_DATA = {
   "meta": {
-    "generated_at": "2026-06-22 17:11:32.548578",
+    "generated_at": "2026-06-22 17:29:12.406883",
     "data_source": "SYNTHETIC",
     "disclaimer": "SYNTHETIC demo data \u2014 generated, not measured. Read-only; no calibration is written or flashed.",
     "car": "2020 Dodge Challenger SRT Hellcat Redeye"
@@ -19,6 +19,38 @@ window.TUNETRACK_DATA = {
     "belt_pn": "Gates K080800HD",
     "tune_rev": "DEMO-r1",
     "notes": "SYNTHETIC: assumed build for end-to-end demo -- replace with real config"
+  },
+  "sources": {
+    "vcm": {
+      "label": "VCM Scanner",
+      "device": "HP Tuners MPVI3 -> PCM",
+      "color": "#19B9CC"
+    },
+    "timeslip": {
+      "label": "Timeslip / Dragy",
+      "device": "track card + GPS",
+      "color": "#F2640A"
+    },
+    "kestrel": {
+      "label": "Kestrel",
+      "device": "weather meter / density alt",
+      "color": "#5BC8F5"
+    },
+    "pyro": {
+      "label": "Pyrometer",
+      "device": "tire tread temps",
+      "color": "#F472B6"
+    },
+    "manual": {
+      "label": "Manual / build",
+      "device": "entered by hand",
+      "color": "#9AA5B1"
+    },
+    "toadd": {
+      "label": "Not logged yet",
+      "device": "add to VCM layout",
+      "color": "#556070"
+    }
   },
   "runs": [
     {
@@ -2065,6 +2097,303 @@ window.TUNETRACK_DATA = {
           "unit": "V",
           "value_at_peak": 14.07
         }
+      ],
+      "sensor_sources": [
+        {
+          "key": "vcm",
+          "items": [
+            {
+              "label": "Engine speed",
+              "value": 6140.0,
+              "unit": "rpm"
+            },
+            {
+              "label": "Vehicle speed",
+              "value": 133.4,
+              "unit": "mph"
+            },
+            {
+              "label": "Gear",
+              "value": 5.0,
+              "unit": ""
+            },
+            {
+              "label": "Barometric",
+              "value": 99.0,
+              "unit": "kPa"
+            },
+            {
+              "label": "Manifold pressure",
+              "value": 177.0,
+              "unit": "kPa"
+            },
+            {
+              "label": "Boost (true)",
+              "value": 11.31,
+              "unit": "psi"
+            },
+            {
+              "label": "Blower bypass",
+              "value": 4.1,
+              "unit": "%"
+            },
+            {
+              "label": "Airflow",
+              "value": 535.0,
+              "unit": "g/s"
+            },
+            {
+              "label": "Throttle",
+              "value": 100.0,
+              "unit": "%"
+            },
+            {
+              "label": "Intake air temp",
+              "value": 48.4,
+              "unit": "deg C"
+            },
+            {
+              "label": "Actual spark",
+              "value": 12.9,
+              "unit": "deg"
+            },
+            {
+              "label": "MBT spark",
+              "value": 15.8,
+              "unit": "deg"
+            },
+            {
+              "label": "Knock retard",
+              "value": 0.01,
+              "unit": "deg"
+            },
+            {
+              "label": "Knock sensor",
+              "value": 0.26,
+              "unit": "V"
+            },
+            {
+              "label": "Commanded EQ",
+              "value": 1.27,
+              "unit": "EQ"
+            },
+            {
+              "label": "Measured EQ",
+              "value": 1.23,
+              "unit": "EQ"
+            },
+            {
+              "label": "Fuel pressure",
+              "value": 581.0,
+              "unit": "kPa"
+            },
+            {
+              "label": "Desired fuel press",
+              "value": 580.0,
+              "unit": "kPa"
+            },
+            {
+              "label": "Injector duty",
+              "value": 77.83,
+              "unit": "%"
+            },
+            {
+              "label": "Exhaust temp",
+              "value": 763.0,
+              "unit": "deg C"
+            },
+            {
+              "label": "Coolant temp",
+              "value": 89.8,
+              "unit": "deg C"
+            },
+            {
+              "label": "LTR coolant",
+              "value": 42.3,
+              "unit": "deg C"
+            },
+            {
+              "label": "LTR pump",
+              "value": 4196.0,
+              "unit": "rpm"
+            },
+            {
+              "label": "Oil temp",
+              "value": 98.9,
+              "unit": "deg C"
+            },
+            {
+              "label": "Oil pressure",
+              "value": 490.0,
+              "unit": "kPa"
+            },
+            {
+              "label": "Actual torque",
+              "value": 886.0,
+              "unit": "N m"
+            },
+            {
+              "label": "System voltage",
+              "value": 14.07,
+              "unit": "V"
+            }
+          ]
+        },
+        {
+          "key": "timeslip",
+          "items": [
+            {
+              "label": "Reaction",
+              "value": 0.452,
+              "unit": "s"
+            },
+            {
+              "label": "60-ft",
+              "value": 1.348,
+              "unit": "s"
+            },
+            {
+              "label": "330-ft",
+              "value": 3.62,
+              "unit": "s"
+            },
+            {
+              "label": "1/8 ET",
+              "value": 6.31,
+              "unit": "s"
+            },
+            {
+              "label": "1/8 MPH",
+              "value": 117.8,
+              "unit": "mph"
+            },
+            {
+              "label": "1000-ft",
+              "value": 8.19,
+              "unit": "s"
+            },
+            {
+              "label": "1/4 ET",
+              "value": 9.78,
+              "unit": "s"
+            },
+            {
+              "label": "1/4 MPH",
+              "value": 143.2,
+              "unit": "mph"
+            }
+          ]
+        },
+        {
+          "key": "kestrel",
+          "items": [
+            {
+              "label": "Air temp",
+              "value": 29.0,
+              "unit": "C"
+            },
+            {
+              "label": "Humidity",
+              "value": 55.0,
+              "unit": "%"
+            },
+            {
+              "label": "Baro",
+              "value": 99.2,
+              "unit": "kPa"
+            },
+            {
+              "label": "Density alt",
+              "value": 2690.0,
+              "unit": "ft"
+            }
+          ]
+        },
+        {
+          "key": "pyro",
+          "items": [
+            {
+              "label": "R in",
+              "value": 78.0,
+              "unit": "C"
+            },
+            {
+              "label": "R ctr",
+              "value": 86.0,
+              "unit": "C"
+            },
+            {
+              "label": "R out",
+              "value": 79.0,
+              "unit": "C"
+            },
+            {
+              "label": "L in",
+              "value": 77.0,
+              "unit": "C"
+            },
+            {
+              "label": "L ctr",
+              "value": 85.0,
+              "unit": "C"
+            },
+            {
+              "label": "L out",
+              "value": 78.0,
+              "unit": "C"
+            }
+          ]
+        },
+        {
+          "key": "manual",
+          "items": [
+            {
+              "label": "Cold psi F",
+              "value": 32.0,
+              "unit": "psi"
+            },
+            {
+              "label": "Cold psi R",
+              "value": 16.0,
+              "unit": "psi"
+            },
+            {
+              "label": "Upper pulley",
+              "value": "3.0 in",
+              "unit": ""
+            },
+            {
+              "label": "Pump",
+              "value": "dual 525 lph (E85)",
+              "unit": ""
+            },
+            {
+              "label": "Injectors",
+              "value": "ID1300x2",
+              "unit": ""
+            },
+            {
+              "label": "E85",
+              "value": 85.0,
+              "unit": "%"
+            },
+            {
+              "label": "Boost target",
+              "value": 14.0,
+              "unit": "psi"
+            }
+          ]
+        },
+        {
+          "key": "toadd",
+          "items": [
+            {
+              "label": "Wheel speed RL/RR/FL/FR",
+              "value": "\u2014",
+              "unit": "add for live slip"
+            }
+          ]
+        }
       ]
     }
   ],
@@ -2182,7 +2511,7 @@ window.TUNETRACK_DATA = {
     },
     "passes_used": 1,
     "gate_passed": 1,
-    "created_at": "2026-06-22 17:11:32.422367"
+    "created_at": "2026-06-22 17:29:12.280698"
   },
   "forecast": {
     "forecast_id": 1,
@@ -2192,7 +2521,7 @@ window.TUNETRACK_DATA = {
     "track_temp_c": 35.0,
     "source": "SYNTHETIC: evening cool-down model",
     "tire_heat_cycles": 7,
-    "created_at": "2026-06-22 17:11:32.426932"
+    "created_at": "2026-06-22 17:29:12.285433"
   },
   "retune": [
     {
@@ -2209,7 +2538,7 @@ window.TUNETRACK_DATA = {
       "guardrail_flag": null,
       "rationale": "Pull 1.0deg here; knock is direct evidence, pulling timing is always safe.",
       "status": "proposed",
-      "created_at": "2026-06-22 17:11:32.458796"
+      "created_at": "2026-06-22 17:29:12.316193"
     },
     {
       "rec_id": 2,
@@ -2225,7 +2554,7 @@ window.TUNETRACK_DATA = {
       "guardrail_flag": null,
       "rationale": "Pull 1.0deg here; knock is direct evidence, pulling timing is always safe.",
       "status": "proposed",
-      "created_at": "2026-06-22 17:11:32.458856"
+      "created_at": "2026-06-22 17:29:12.316248"
     },
     {
       "rec_id": 3,
@@ -2241,7 +2570,7 @@ window.TUNETRACK_DATA = {
       "guardrail_flag": "STEP_IN",
       "rationale": "Drop ~1.5 psi (small step into new territory) to settle launch spin; verify on the next pass.",
       "status": "proposed",
-      "created_at": "2026-06-22 17:11:32.458909"
+      "created_at": "2026-06-22 17:29:12.316298"
     }
   ],
   "maintenance": [

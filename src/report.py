@@ -18,6 +18,7 @@ import pandas as pd
 from db import connect, run_frame, now_iso, ROOT, SYNTHETIC_TAG, DB_PATH
 from seed import DEMO_TODAY
 from greenlight import readiness as greenlight_readiness
+from config import load_config
 
 ATM_KPA = 101.3
 OUT = ROOT / "web" / "data.json"
@@ -178,6 +179,13 @@ def write_report(conn, out: pathlib.Path = OUT) -> dict:
     out.write_text(payload)
     # Also emit a JS global so the portals load even from file:// (no fetch/CORS).
     (out.parent / "data.js").write_text(f"window.TUNETRACK_DATA = {payload};\n")
+    # And drop a copy into the Teams reports_dir for the team/archive (best-effort).
+    try:
+        rdir = pathlib.Path(load_config()["reports_dir"])
+        rdir.mkdir(parents=True, exist_ok=True)
+        (rdir / "portal_data.json").write_text(payload)
+    except Exception:
+        pass
     return rep
 
 

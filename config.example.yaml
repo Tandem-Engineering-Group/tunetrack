@@ -1,0 +1,17 @@
+# TuneTrack paths config — TEMPLATE.
+#
+# Copy this file to config.yaml (which is gitignored) and edit the paths to match
+# your machine's Teams/SharePoint-synced "Track Tune - General" library.
+#
+# Split of concerns:
+#   - CODE + the SQLite catalog live in the repo (this folder).
+#   - DATA (logs in, reports out) lives in the Teams library, synced to SharePoint,
+#     and is NEVER committed to git.
+#
+# Paths may use forward slashes even on Windows. config.yaml is git-ignored; only
+# this example template is committed.
+
+inbox_dir:   "C:/Users/RL.Admin/TGCS/Track Tune - General/01_Inbox"     # watched: raw VCM Scanner CSVs land here
+runs_dir:    "C:/Users/RL.Admin/TGCS/Track Tune - General/02_Runs"      # one folder per event (YYYY-MM-DD_Track)
+reports_dir: "C:/Users/RL.Admin/TGCS/Track Tune - General/03_Reports"   # pipeline outputs: parse reports, scorecards, retune, JSON
+db_path:     "tunetrack.db"                                             # SQLite catalog, repo-relative (gitignored)

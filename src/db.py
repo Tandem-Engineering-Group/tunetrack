@@ -11,8 +11,15 @@ import datetime as dt
 import pandas as pd
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-DB_PATH = ROOT / "tunetrack.db"
 SCHEMA = ROOT / "schema.sql"
+
+# DB location comes from config (config.yaml -> defaults). Guarded so the module
+# still imports if config/yaml is unavailable for any reason.
+try:
+    from config import load_config
+    DB_PATH = pathlib.Path(load_config()["db_path"])
+except Exception:
+    DB_PATH = ROOT / "tunetrack.db"
 
 # Canonical absolute-timestamp format used across the pipeline.
 TS_FMT = "%Y-%m-%d %H:%M:%S.%f"

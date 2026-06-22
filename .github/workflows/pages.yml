@@ -1,0 +1,40 @@
+name: Deploy portals to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout built portals (gh-pages branch)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+      - name: Drop the .git directory from the artifact
+        run: rm -rf .git
+      - name: Configure Pages (enable if not already)
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

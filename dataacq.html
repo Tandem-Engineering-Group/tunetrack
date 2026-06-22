@@ -6,7 +6,7 @@
 <title>TuneTrack — Data Acquisition</title>
 <style>
   :root{--bg:#121419;--panel:#1A1E25;--panel2:#222831;--line:#2C333D;--ink:#F3F6F9;
-    --mut:#8A95A1;--amber:#F2640A;--cyan:#19B9CC;--green:#3FCF6B;--red:#F0473E;--yellow:#F2B705;}
+    --mut:#8A95A1;--amber:#F2640A;--cyan:#19B9CC;--green:#3FCF6B;--red:#F0473E;--yellow:#F2B705;--pink:#F472B6;}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--ink);font-family:Calibri,Segoe UI,system-ui,sans-serif;padding:14px}
   .wrap{max-width:1100px;margin:0 auto}
@@ -15,42 +15,116 @@
   .eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
   h1{font-family:Cambria,Georgia,serif;font-size:24px;margin:2px 0}
   .sub{color:var(--mut);font-size:13px;margin-bottom:14px}
-  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--panel);border-radius:13px;padding:12px;margin-bottom:14px;font-size:12px}
+  .panel{background:var(--panel);border-radius:13px;padding:12px;margin-bottom:14px}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px}
   .flow .step{background:var(--panel2);border-radius:8px;padding:6px 11px;font-weight:700}
   .flow .arr{color:var(--mut)}
-  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:8px 0 14px}
   .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)}
-  .dot{width:11px;height:11px;border-radius:3px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
   .sec{font-size:12px;font-weight:800;letter-spacing:.04em;margin:4px 0 8px}
   .grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));margin-bottom:16px}
-  .card{background:var(--panel);border-radius:13px;padding:13px}
+  .card{background:var(--panel);border-radius:13px;padding:13px;cursor:pointer;transition:.12s;border:1px solid transparent}
+  .card:hover{border-color:var(--line);transform:translateY(-1px)}
   .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
   .card .dev{font-family:Cambria,serif;font-size:15px;font-weight:700}
   .badge{font-size:10px;font-weight:800;padding:2px 9px;border-radius:99px;white-space:nowrap}
   .row{display:flex;gap:7px;margin-top:8px;font-size:12px;line-height:1.45}
-  .row .k{color:var(--mut);min-width:62px;flex-shrink:0}
-  .row .v{color:#C7CDD4}
+  .row .k{color:var(--mut);min-width:62px;flex-shrink:0}.row .v{color:#C7CDD4}
+  .more{font-size:11px;color:var(--cyan);margin-top:8px;font-weight:700}
   .hint{font-size:11px;color:var(--mut);margin-top:8px;text-align:center}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;padding:30px 14px;overflow:auto;z-index:20}
+  .modal.open{display:flex}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:680px;width:100%;padding:18px}
+  .sheet h2{font-family:Cambria,serif;font-size:20px;margin-bottom:2px}
+  .sheet .close{float:right;cursor:pointer;color:var(--mut);font-size:20px;line-height:1}
+  .when{font-size:12px;font-weight:800;letter-spacing:.03em;margin:14px 0 6px}
+  .when small{font-weight:400;color:var(--mut);text-transform:none;letter-spacing:0}
+  .item{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:3px 0;color:#C7CDD4}
+  .item .b{color:var(--mut)}
+  .auto{color:var(--cyan);font-size:11px;border:1px solid var(--cyan);border-radius:99px;padding:0 7px;margin-left:6px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="banner" id="banner">⚠ SYNTHETIC demo data — generated, not measured. Read-only to the PCM.</div>
+  <div class="banner" id="banner">⚠ SYNTHETIC demo data — device list & comms paths. Read-only to the PCM.</div>
   <div class="eyebrow">TuneTrack · data acquisition &nbsp;·&nbsp; <a href="index.html">← hub</a></div>
   <h1>Data acquisition &amp; comms</h1>
-  <div class="sub">Every source feeding the pipeline — what it measures, how it communicates, and the buy / check list.</div>
+  <div class="sub">Where every measurement comes off the car, how each device communicates, and the buy / check list. Tap any card for detail — tap <b>Manual / build sheet</b> for what to enter and when.</div>
 
-  <div class="flow">
+  <!-- ===== SCHEMATIC ===== -->
+  <div class="panel">
+    <div class="eyebrow" style="margin-bottom:6px">Measurement points — color = source device</div>
+    <svg viewBox="0 0 1000 470" style="width:100%;height:auto" font-family="Segoe UI, sans-serif">
+      <!-- ENGINE zone -->
+      <rect x="8" y="8" width="984" height="150" rx="12" fill="#161A20" stroke="#2C333D"/>
+      <text x="22" y="28" fill="#8A95A1" font-size="11" font-weight="700" letter-spacing="1">ENGINE — VCM Scanner</text>
+      <line x1="90" y1="86" x2="765" y2="86" stroke="#19B9CC" stroke-width="2" stroke-dasharray="5 5" opacity=".7"/>
+      <!-- blocks -->
+      <g fill="#222831" stroke="#2C333D"><rect x="30" y="70" width="120" height="32" rx="6"/><rect x="165" y="70" width="120" height="32" rx="6"/><rect x="300" y="70" width="120" height="32" rx="6"/><rect x="435" y="70" width="120" height="32" rx="6"/><rect x="570" y="70" width="120" height="32" rx="6"/><rect x="705" y="70" width="105" height="32" rx="6"/></g>
+      <g fill="#C7CDD4" font-size="10" text-anchor="middle" font-weight="700">
+        <text x="90" y="90">Intake</text><text x="225" y="90">Blower</text><text x="360" y="90">Intercooler</text>
+        <text x="495" y="90">Manifold</text><text x="630" y="90">Cylinders</text><text x="757" y="90">Exhaust</text></g>
+      <!-- VCM pins (cyan) + channel labels -->
+      <g fill="#19B9CC"><circle cx="90" cy="68" r="4"/><circle cx="225" cy="68" r="4"/><circle cx="360" cy="68" r="4"/><circle cx="495" cy="68" r="4"/><circle cx="630" cy="68" r="4"/><circle cx="757" cy="68" r="4"/></g>
+      <g fill="#19B9CC" font-size="9" text-anchor="middle">
+        <text x="90" y="120">Ambient air</text><text x="90" y="131">Barometric</text>
+        <text x="225" y="120">Blower bypass</text><text x="225" y="131">Engine RPM</text>
+        <text x="360" y="120">Aircharge / IAT</text><text x="360" y="131">LTR coolant + pump</text>
+        <text x="495" y="120">MAP / boost</text><text x="495" y="131">Fuel press · Inj PW · EQ</text>
+        <text x="630" y="120">Knock · Spark / MBT</text><text x="630" y="131">Coolant · Oil · Torque · Misfire</text>
+        <text x="757" y="120">EGT</text></g>
+
+      <!-- CAR zone -->
+      <rect x="8" y="166" width="984" height="150" rx="12" fill="#161A20" stroke="#2C333D"/>
+      <text x="22" y="186" fill="#8A95A1" font-size="11" font-weight="700" letter-spacing="1">CAR / DRIVETRAIN</text>
+      <rect x="330" y="232" width="340" height="42" rx="16" fill="#222831" stroke="#2C333D"/>
+      <circle cx="400" cy="284" r="22" fill="#2A3340" stroke="#2C333D" stroke-width="3"/>
+      <circle cx="600" cy="284" r="22" fill="#2A3340" stroke="#2C333D" stroke-width="3"/>
+      <!-- Dragy (orange) -->
+      <circle cx="500" cy="224" r="6" fill="#F2640A"/>
+      <text x="500" y="214" fill="#F2640A" font-size="9" text-anchor="middle">Dragy GPS · ET / trap / 0-60 · ground speed</text>
+      <!-- Vehicle speed (cyan) -->
+      <circle cx="500" cy="253" r="5" fill="#19B9CC"/>
+      <text x="500" y="257" fill="#19B9CC" font-size="9" text-anchor="middle">Vehicle speed (PCM)</text>
+      <!-- wheel speeds (to-add, dim) -->
+      <circle cx="400" cy="284" r="5" fill="#6b7785"/><circle cx="600" cy="284" r="5" fill="#6b7785"/>
+      <text x="400" y="320" fill="#9AA5B1" font-size="9" text-anchor="middle">Wheel speed FL/FR — to add</text>
+      <text x="600" y="320" fill="#9AA5B1" font-size="9" text-anchor="middle">Wheel speed RL/RR — to add</text>
+      <!-- pyro + tire pressure on rear tire -->
+      <circle cx="630" cy="270" r="5" fill="#F472B6"/>
+      <text x="690" y="262" fill="#F472B6" font-size="9" text-anchor="start">Pyro tread temps</text>
+      <text x="690" y="275" fill="#9AA5B1" font-size="9" text-anchor="start">Tire pressure (manual)</text>
+
+      <!-- TRACK zone -->
+      <rect x="8" y="324" width="984" height="138" rx="12" fill="#161A20" stroke="#2C333D"/>
+      <text x="22" y="344" fill="#8A95A1" font-size="11" font-weight="700" letter-spacing="1">TRACK</text>
+      <rect x="70" y="418" width="860" height="16" fill="#222831"/>
+      <g stroke="#F2640A" stroke-width="2"><line x1="120" y1="410" x2="120" y2="440"/><line x1="210" y1="412" x2="210" y2="438"/><line x1="390" y1="412" x2="390" y2="438"/><line x1="560" y1="412" x2="560" y2="438"/><line x1="740" y1="412" x2="740" y2="438"/><line x1="910" y1="410" x2="910" y2="440"/></g>
+      <g fill="#F2640A" font-size="9" text-anchor="middle">
+        <text x="120" y="404">RT / stage</text><text x="210" y="404">60-ft</text><text x="390" y="404">330</text>
+        <text x="560" y="404">1/8 ET+MPH</text><text x="740" y="404">1000</text><text x="910" y="404">1/4 ET+MPH</text></g>
+      <circle cx="300" cy="426" r="5" fill="#9AA5B1"/>
+      <text x="300" y="456" fill="#9AA5B1" font-size="9" text-anchor="middle">Track surface temp (IR) · prep · lane — manual</text>
+    </svg>
+    <div class="legend" id="srclegend" style="margin-top:6px"></div>
+  </div>
+
+  <div class="panel flow">
     <span class="step">Capture (in-car + trackside)</span><span class="arr">→</span>
     <span class="step">OneDrive / SharePoint · 01_Inbox</span><span class="arr">→</span>
     <span class="step">Pipeline (tunetrack.db)</span><span class="arr">→</span>
     <span class="step">Portals (read-only)</span>
   </div>
 
-  <div class="legend" id="legend"></div>
+  <div class="legend" id="statlegend"></div>
   <div id="sections"></div>
-  <div class="hint">Read-only with respect to the PCM. Colors match the engine portal's “sensors by source”. Device list from the pipeline export.</div>
+  <div class="hint">Read-only with respect to the PCM. Colors match the engine portal's “sensors by source”.</div>
 </div>
+
+<!-- modal -->
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 
 <script src="data.js"></script>
 <script>
@@ -61,13 +135,56 @@ const SRC=TT.sources||{}, ST=TT.acq_status||{
 const ACQ=TT.acquisition||[];
 const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
 if(TT.meta) document.getElementById("banner").textContent=
-  "⚠ "+TT.meta.data_source+" demo data — device list & comms paths. Read-only to the PCM.";
+  "⚠ "+TT.meta.data_source+" demo data — device list, comms & measurement points. Read-only to the PCM.";
 
-// legend (status)
-document.getElementById("legend").innerHTML=Object.keys(ST).map(function(k){var m=ST[k];
+// source-color key under the schematic
+document.getElementById("srclegend").innerHTML=Object.keys(SRC).map(function(k){var m=SRC[k];
+  return '<span><span class="dot" style="background:'+m.color+'"></span>'+esc(m.label)+'</span>';}).join("");
+// status legend
+document.getElementById("statlegend").innerHTML=Object.keys(ST).map(function(k){var m=ST[k];
   return '<span><span class="dot" style="background:'+m.color+'"></span>'+esc(m.label)+'</span>';}).join("");
 
-// sections grouped by status, in this order
+// what-to-enter-and-when for the build sheet
+const BUILD_SHEET=[
+  {when:"Once — per configuration", note:"the combo; update only when you change parts/tune", items:[
+    "Upper / lower pulley","Snout","Fuel pump","Injectors",["E85 %","manual — no flex sensor in the log"],
+    "Boost target","Belt P/N","Tune revision (e.g. ZHT PCM 93 boost-limited)","Notes"]},
+  {when:"Per event — set the tires", note:"once you mount the set", items:[
+    "Tire compound / size","Set ID","Heat cycles on the set","Cold pressures F / R"]},
+  {when:"At the lanes — pre-stage", note:"as you stage", items:[
+    "Track surface temp (IR gun)","Track prep (PJ1 / VHT / none)","Lane","Bite rating (1-10)",
+    ["Air temp / density altitude","AUTO from the log"]]},
+  {when:"After each run", note:"right after the pass", items:[
+    "Pyrometer — 6 tread temps (R in/ctr/out, L in/ctr/out)","Hot pressures F / R",
+    "Timeslip card — RT · 60-ft · 330 · 1/8 ET+MPH · 1000 · 1/4 ET+MPH","Dragy — export CSV (optional cross-check)"]},
+];
+
+function openModal(a){
+  const m=SRC[a.source]||{color:"#888"}, sm=ST[a.status]||{label:a.status,color:"#888"};
+  let html='<span class="close" onclick="closeModal()">✕</span>'
+    +'<h2 style="border-left:4px solid '+m.color+';padding-left:10px">'+esc(a.device)+'</h2>'
+    +'<span class="badge" style="background:'+sm.color+'22;color:'+sm.color+'">'+esc(sm.label)+'</span>'
+    +'<div class="row"><span class="k">Measures</span><span class="v">'+esc(a.measures)+'</span></div>'
+    +'<div class="row"><span class="k">Comms</span><span class="v">'+esc(a.comms)+'</span></div>'
+    +'<div class="row"><span class="k">To pipeline</span><span class="v">'+esc(a.transfer)+'</span></div>';
+  if(/build sheet/i.test(a.device)){
+    html+='<div style="margin-top:14px;font-size:12px;color:#C7CDD4">Everything below is hand-entered (everything else is automatic from the log + timeslip):</div>';
+    BUILD_SHEET.forEach(function(g){
+      html+='<div class="when" style="color:'+m.color+'">'+esc(g.when)+' <small>· '+esc(g.note)+'</small></div>';
+      g.items.forEach(function(it){
+        if(Array.isArray(it)) html+='<div class="item"><span class="b">▸</span><span>'+esc(it[0])+'<span class="auto">'+esc(it[1])+'</span></span></div>';
+        else html+='<div class="item"><span class="b">▸</span><span>'+esc(it)+'</span></div>';
+      });
+    });
+  }
+  document.getElementById("sheet").innerHTML=html;
+  document.getElementById("modal").classList.add("open");
+}
+function closeModal(){ document.getElementById("modal").classList.remove("open"); }
+document.getElementById("modal").addEventListener("click",function(e){ if(e.target===this) closeModal(); });
+document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeModal(); });
+
+// render device cards grouped by status
 const order=["have","check","buy","dropped"];
 document.getElementById("sections").innerHTML=order.map(function(stkey){
   var items=ACQ.filter(function(a){return a.status===stkey;}); if(!items.length) return "";
@@ -75,15 +192,20 @@ document.getElementById("sections").innerHTML=order.map(function(stkey){
   var cards=items.map(function(a){
     var col=(SRC[a.source]||{}).color||"#888";
     var strike=stkey==="dropped"?"text-decoration:line-through;opacity:.7":"";
-    return '<div class="card" style="border-left:3px solid '+col+'">'
+    var i=ACQ.indexOf(a);
+    return '<div class="card" data-idx="'+i+'" style="border-left:3px solid '+col+'">'
       +'<div class="top"><span class="dev" style="'+strike+'">'+esc(a.device)+'</span>'
       +'<span class="badge" style="background:'+sm.color+'22;color:'+sm.color+'">'+esc(sm.label)+'</span></div>'
       +'<div class="row"><span class="k">Measures</span><span class="v">'+esc(a.measures)+'</span></div>'
       +'<div class="row"><span class="k">Comms</span><span class="v">'+esc(a.comms)+'</span></div>'
-      +'<div class="row"><span class="k">To pipeline</span><span class="v">'+esc(a.transfer)+'</span></div></div>';
+      +'<div class="more">'+(/build sheet/i.test(a.device)?"What to enter &amp; when ›":"Details ›")+'</div></div>';
   }).join("");
   return '<div class="sec" style="color:'+sm.color+'">'+esc(sm.label).toUpperCase()+' ('+items.length+')</div><div class="grid">'+cards+'</div>';
 }).join("") || '<div class="sub">No acquisition data — run the pipeline to populate it.</div>';
+
+document.querySelectorAll(".card[data-idx]").forEach(function(c){
+  c.addEventListener("click",function(){ openModal(ACQ[+c.getAttribute("data-idx")]); });
+});
 </script>
 </body>
 </html>

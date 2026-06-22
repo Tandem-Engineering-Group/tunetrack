@@ -13,8 +13,9 @@ import pathlib
 
 from db import connect, run_frame, latest_run_id, DB_PATH
 
-REQUIRED_CHANNELS = ["engine_rpm", "map_kpa", "tps_pct", "fuel_press_kpa",
-                     "wheel_speed_rl", "wheel_speed_rr", "wheel_speed_fl", "wheel_speed_fr"]
+# Wheel speeds are NOT required (they only enable live slip); knock/fuel/spark
+# analysis runs without them.
+REQUIRED_CHANNELS = ["engine_rpm", "map_kpa", "tps_pct", "fuel_press_kpa"]
 MIN_PULL_S = 3.0
 MAX_GAP_S = 0.2
 

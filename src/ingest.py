@@ -28,11 +28,15 @@ import yaml
 from db import connect, init_db, now_iso, TS_FMT, ROOT, DB_PATH
 from config import load_config
 
-# Channels we expect for a complete pass; missing ones are flagged in the report.
+# Channels that MUST be present for a valid pass (hard-flagged if missing).
 REQUIRED = {
     "core (segmentation)": ["engine_rpm", "map_kpa", "tps_pct"],
     "fuel safety": ["fuel_press_kpa"],
-    "traction (slip)": ["wheel_speed_rl", "wheel_speed_rr", "wheel_speed_fl", "wheel_speed_fr"],
+}
+# Nice-to-have channels: their absence degrades a feature but doesn't block the run.
+RECOMMENDED = {
+    "live launch-slip (wheel speeds)": ["wheel_speed_rl", "wheel_speed_rr",
+                                        "wheel_speed_fl", "wheel_speed_fr"],
 }
 
 # Tokens that identify the elapsed-time column.
@@ -153,11 +157,11 @@ def ingest(csv_path: pathlib.Path, channels_yaml: pathlib.Path, conn=None) -> di
         "channels_matched": sorted(set(matched.values())),
         "channels_unmatched": unmatched,
     }
-    report["required_missing"] = {
-        group: [c for c in chans if c not in set(matched.values())]
-        for group, chans in REQUIRED.items()
-    }
+    present = set(matched.values())
+    report["required_missing"] = {g: [c for c in chans if c not in present] for g, chans in REQUIRED.items()}
     report["required_missing"] = {k: v for k, v in report["required_missing"].items() if v}
+    report["recommended_missing"] = {g: [c for c in chans if c not in present] for g, chans in RECOMMENDED.items()}
+    report["recommended_missing"] = {k: v for k, v in report["recommended_missing"].items() if v}
 
     # ---- write logs + samples ----
     if conn is not None:
@@ -196,11 +200,15 @@ def format_report_text(rep: dict) -> str:
     lines.append(f"{'unmatched':>18}: {rep['channels_unmatched']}")
     if rep.get("required_missing"):
         lines.append("")
-        lines.append("  !! REQUIRED CHANNELS MISSING (downstream scorecards need these):")
+        lines.append("  !! REQUIRED CHANNELS MISSING (scoring needs these):")
         for group, chans in rep["required_missing"].items():
             lines.append(f"     - {group}: {chans}")
     else:
-        lines.append(f"{'required':>18}: all present (core, fuel pressure, wheel speeds)")
+        lines.append(f"{'required':>18}: all present (core + fuel pressure)")
+    if rep.get("recommended_missing"):
+        lines.append("  note: optional channels not logged (feature disabled, run still scores):")
+        for group, chans in rep["recommended_missing"].items():
+            lines.append(f"     - {group}: {chans}")
     return "\n".join(lines)
 
 

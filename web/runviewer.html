@@ -62,7 +62,7 @@ function mapRun(d){
     t:+(+t).toFixed(2),
     rpm:Math.round(s.engine_rpm[i]),
     boost:+(+s.boost_psi[i]).toFixed(1),
-    slip:+(+s.rear_slip_pct[i]).toFixed(1),
+    slip:(s.rear_slip_pct[i]==null?null:+(+s.rear_slip_pct[i]).toFixed(1)),
     mph:+(+s.vehicle_speed[i]).toFixed(1),
     inj:+(+s.inj_duty[i]).toFixed(1),
     lamMeas:+(1/s.eq_meas[i]).toFixed(3),   // EQ ratio -> lambda
@@ -81,11 +81,12 @@ function mapRun(d){
     rt:ts.rt||0, sixty:ts.sixty||0, eighthEt:ts.eighth_et||0,
     quarterEt:ts.quarter_et||0, quarterMph:ts.quarter_mph||0,
     scores:sc, flags:d.flags||[], power:p, traction:tr, readiness:d.readiness||null,
+    live_slip:!!d.live_slip,
     series,
     peaks:{
       knock:(p.knock&&p.knock.peak_deg)||0,
       inj:(p.inj_duty&&p.inj_duty.peak_pct)||0,
-      slip:(tr.slip&&tr.slip.peak_pct)||0,
+      slip:(tr.slip&&tr.slip.peak_pct!=null)?tr.slip.peak_pct:null,
       iat:(p.heat_soak&&p.heat_soak.end_c)||0,
       fuelMin:(p.fuel_press&&p.fuel_press.min_kpa)||0,
       leanMax:(p.lambda&&p.lambda.peak_lean_pct)||0,
@@ -261,7 +262,9 @@ function renderRun(){
       {key:"rpm",col:C.cyan,lo:0,hi:6500},{key:"boost",col:C.amber,lo:0,hi:20}]))+
     chartCard("Lambda — measured vs commanded","λ",chartSVG(r,[
       {key:"lamMeas",col:C.green,lo:0.72,hi:0.90,fmt:v=>v.toFixed(2)},{key:"lamCmd",col:C.mut,lo:0.72,hi:0.90,dash:true}]))+
-    chartCard("Rear-wheel slip","%",chartSVG(r,[{key:"slip",col:C.amber,lo:0,hi:45}]))+
+    (r.live_slip
+      ? chartCard("Rear-wheel slip","%",chartSVG(r,[{key:"slip",col:C.amber,lo:0,hi:45}]))
+      : `<div class="panel" style="padding:12px"><div class="row between" style="margin-bottom:2px"><span class="ttl">Rear-wheel slip</span><span class="lbl" style="font-size:10px">n/a</span></div><div class="lbl" style="font-size:12px;padding:16px 2px">No wheel-speed channels logged — live slip unavailable. Traction read from 60-ft + pyrometer.</div></div>`)+
     chartCard("Injector duty & fuel pressure","% / psi",chartSVG(r,[
       {key:"inj",col:C.cyan,lo:0,hi:100},{key:"fuel",col:C.yellow,lo:70,hi:92}]));
 
@@ -280,10 +283,18 @@ function renderRun(){
   setChip("fuel",fuelLvl,pk.fuelMin.toFixed(0)+" kPa");
   setChip("iat",iatLvl,pk.iat.toFixed(0)+"°C");
   setChip("sixty",sixtyLvl,(+r.sixty).toFixed(2)+"s");
-  setChip("slipp",slipLvl,pk.slip.toFixed(0)+"%");
-  document.getElementById("launchread").textContent= pk.slip<10
-    ? "Hooked clean — slip settled under 10%. Pressure and prep matched the surface."
-    : `Spun to ${pk.slip.toFixed(0)}% off the line — drop launch pressure ~1.5 psi and re-read tread temps next pass.`;
+  if(r.live_slip && pk.slip!=null){
+    setChip("slipp",slipLvl,pk.slip.toFixed(0)+"%");
+    document.getElementById("launchread").textContent= pk.slip<10
+      ? "Hooked clean — slip settled under 10%. Pressure and prep matched the surface."
+      : `Spun to ${pk.slip.toFixed(0)}% off the line — drop launch pressure ~1.5 psi and re-read tread temps next pass.`;
+  } else {
+    setChip("slipp","ok","n/a");
+    document.getElementById("slipp-d").style.background=C.mut;
+    document.getElementById("slipp-v").style.color=C.mut;
+    document.getElementById("launchread").textContent=
+      "No wheel-speed channels logged — launch read from 60-ft + tread temps (pyrometer). Add wheel speeds to your VCM layout for live slip.";
+  }
 
   const recs=(TT&&TT.retune)||[];
   document.getElementById("retune").innerHTML = recs.length ? recs.map(x=>{
@@ -308,8 +319,8 @@ function update(){
   gBar("boost",c.boost,18,C.green);
   const lamLvl=(c.lamMeas-c.lamCmd)>.05?C.red:(c.lamMeas-c.lamCmd)>.03?C.yellow:C.green;
   gBar("lam",c.lamMeas.toFixed(2),1,lamLvl); document.getElementById("lam-sub").textContent="cmd "+c.lamCmd.toFixed(2);
-  const slipLvl=c.slip<10?C.green:c.slip<20?C.yellow:C.red;
-  gBar("slip",c.slip,45,slipLvl);
+  if(c.slip==null){ document.getElementById("slip-v").textContent="—"; const b=document.getElementById("slip-bar"); b.style.width="0%"; b.style.background=C.mut; }
+  else { const slipLvl=c.slip<10?C.green:c.slip<20?C.yellow:C.red; gBar("slip",c.slip,45,slipLvl); }
   gBar("inj",c.inj,100, c.inj>90?C.red:c.inj>85?C.yellow:C.green);
   const x=xAt(t).toFixed(1);
   document.querySelectorAll(".cursor").forEach(el=>{ el.setAttribute("x1",x); el.setAttribute("x2",x); });

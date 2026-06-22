@@ -24,22 +24,35 @@ ATM_KPA = 101.3
 OUT = ROOT / "web" / "data.json"
 
 # Channel -> (label, plain-English meaning, unit) for the engine portal.
+# Order roughly follows the airflow path. Only channels present in the log are shown.
 SENSORS = {
     "engine_rpm": ("Engine speed", "Crankshaft RPM — how fast the engine is turning.", "rpm"),
     "vehicle_speed": ("Vehicle speed", "Road speed from the non-driven wheels.", "mph"),
-    "map_kpa": ("Manifold pressure", "Absolute pressure in the intake; above ~101 kPa is boost.", "kPa"),
+    "trans_gear": ("Gear", "Current trans gear — context for where boost/knock happen in the pull.", ""),
+    "baro_kpa": ("Barometric", "Ambient air pressure; boost is measured above this, not a fixed 101 kPa.", "kPa"),
+    "map_kpa": ("Manifold pressure", "Absolute pressure in the intake; above barometric is boost.", "kPa"),
+    "boost_psi": ("Boost (true)", "MAP minus barometric — the real boost the blower is making.", "psi"),
+    "sc_bypass_pos": ("Blower bypass", "Supercharger bypass position; closes to build boost, opens off-throttle.", "%"),
+    "total_airflow": ("Airflow", "Total mass airflow into the engine — load indicator.", "g/s"),
     "tps_pct": ("Throttle", "Driver throttle command; 100% is wide open.", "%"),
-    "knock_retard_total": ("Knock retard", "Timing the PCM pulled to stop detonation — want ~0.", "deg"),
+    "aircharge_temp_c": ("Intake air temp", "Charge-air temp after the blower/intercooler — heat soak risk.", "deg C"),
+    "actual_spark_deg": ("Actual spark", "Timing the PCM is actually running right now.", "deg"),
+    "mbt_spark_deg": ("MBT spark", "Best-torque timing target; the gap to Actual Spark is your knock margin.", "deg"),
+    "knock_retard_total": ("Knock retard", "Timing pulled to stop detonation — want ~0.", "deg"),
+    "knock_sensor_1": ("Knock sensor", "Raw knock-sensor activity; spikes flag detonation events.", "V"),
     "eq_commanded": ("Commanded EQ", "Air/fuel the tune is asking for; >1 is rich.", "EQ"),
     "wb_eq_1": ("Measured EQ", "What the wideband actually sees; should track command.", "EQ"),
-    "inj_duty_pct": ("Injector duty", "How long the injectors stay open — near 100% is maxed.", "%"),
     "fuel_press_kpa": ("Fuel pressure", "Rail pressure; a drop under load means the pump is signing off.", "kPa"),
+    "fuel_press_desired_kpa": ("Desired fuel press", "Commanded rail pressure — compare to actual to catch a fueling shortfall.", "kPa"),
+    "inj_duty_pct": ("Injector duty", "Derived from pulse width; near 100% means no fuel headroom left.", "%"),
+    "egt_c": ("Exhaust temp", "Exhaust gas temperature — fueling/timing heat indicator.", "deg C"),
     "ect_c": ("Coolant temp", "Engine coolant temperature.", "deg C"),
-    "aircharge_temp_c": ("Intake air temp", "Charge-air temp after the blower/intercooler — heat soak risk.", "deg C"),
     "ltr_coolant_c": ("LTR coolant", "Low-temp radiator loop feeding the intercooler.", "deg C"),
+    "ltr_pump_rpm": ("LTR pump", "Intercooler coolant pump speed.", "rpm"),
     "oil_temp_c": ("Oil temp", "Engine oil temperature.", "deg C"),
     "oil_press_kpa": ("Oil pressure", "Engine oil pressure.", "kPa"),
-    "egt_c": ("Exhaust temp", "Exhaust gas temperature — fueling/timing heat indicator.", "deg C"),
+    "torque_actual": ("Actual torque", "Engine torque estimate; vs Expected shows if a limiter is holding it back.", "N m"),
+    "cm_voltage": ("System voltage", "Control-module supply voltage.", "V"),
 }
 
 
@@ -52,21 +65,30 @@ def _series(df: pd.DataFrame, n: int = 120) -> dict:
         return {}
     idx = list(range(0, len(df), max(1, len(df) // n)))
     s = df.iloc[idx]
-    boost = ((s["map_kpa"] - ATM_KPA) / 6.895).round(1)
-    front = (s["wheel_speed_fl"] + s["wheel_speed_fr"]) / 2
-    rear = (s["wheel_speed_rl"] + s["wheel_speed_rr"]) / 2
-    slip = (((rear - front) / front.where(front > 3) * 100)).round(1).fillna(0)
+
+    def col(c, nd):
+        return s[c].round(nd).tolist() if c in s.columns else None
+
+    boost = (s["boost_psi"] if "boost_psi" in s.columns else (s["map_kpa"] - ATM_KPA) / 6.895).round(1)
+    ws = ["wheel_speed_fl", "wheel_speed_fr", "wheel_speed_rl", "wheel_speed_rr"]
+    if all(c in s.columns for c in ws):
+        front = (s["wheel_speed_fl"] + s["wheel_speed_fr"]) / 2
+        rear = (s["wheel_speed_rl"] + s["wheel_speed_rr"]) / 2
+        slip = (((rear - front) / front.where(front > 3) * 100)).round(1).fillna(0).tolist()
+    else:
+        slip = [None] * len(s)   # no wheel-speed channels -> live slip unavailable
     return {
         "t": s["t_rel"].round(2).tolist(),
         "engine_rpm": s["engine_rpm"].round(0).tolist(),
-        "vehicle_speed": s["vehicle_speed"].round(1).tolist(),
+        "vehicle_speed": col("vehicle_speed", 1),
         "boost_psi": boost.tolist(),
-        "knock": s["knock_retard_total"].round(2).tolist(),
-        "eq_cmd": s["eq_commanded"].round(3).tolist(),
-        "eq_meas": s["wb_eq_1"].round(3).tolist(),
-        "inj_duty": s["inj_duty_pct"].round(1).tolist(),
-        "fuel_press": s["fuel_press_kpa"].round(0).tolist(),
-        "rear_slip_pct": slip.tolist(),
+        "knock": col("knock_retard_total", 2),
+        "actual_spark": col("actual_spark_deg", 1),
+        "eq_cmd": col("eq_commanded", 3),
+        "eq_meas": col("wb_eq_1", 3),
+        "inj_duty": col("inj_duty_pct", 1),
+        "fuel_press": col("fuel_press_kpa", 0),
+        "rear_slip_pct": slip,
     }
 
 
@@ -144,6 +166,8 @@ def build_report(conn) -> dict:
                        "power": power.get("score"), "traction": traction.get("score")},
             "flags": flags, "power": power, "traction": traction,
             "readiness": greenlight_readiness(conn, rid),
+            "live_slip": all(c in df.columns for c in
+                             ["wheel_speed_fl", "wheel_speed_fr", "wheel_speed_rl", "wheel_speed_rr"]),
             "timeslip": slip, "weather": wx, "tire": tire, "track": track,
             "series": _series(df), "engine_snapshot": _engine_snapshot(df),
         })

@@ -24,23 +24,27 @@ def score_traction(conn, run_id: int) -> dict:
         raise SystemExit("eval_traction: empty run frame")
     flags, deductions = [], 0
 
-    # --- live rear slip from wheel speeds ---
-    front = (df["wheel_speed_fl"] + df["wheel_speed_fr"]) / 2.0
-    rear = (df["wheel_speed_rl"] + df["wheel_speed_rr"]) / 2.0
-    valid = front > 3.0
-    slip_pct = ((rear - front) / front * 100).where(valid)
-    peak_slip = float(slip_pct.max()) if valid.any() else 0.0
-    spin = slip_pct > SPIN_THRESHOLD_PCT
-    if spin.any():
-        win = df.loc[spin.fillna(False), "t_rel"]
-        spin_window = [round(float(win.min()), 2), round(float(win.max()), 2)]
+    # --- live rear slip from wheel speeds (only if those channels were logged) ---
+    ws = ["wheel_speed_fl", "wheel_speed_fr", "wheel_speed_rl", "wheel_speed_rr"]
+    have_ws = all(c in df.columns for c in ws)
+    if have_ws:
+        front = (df["wheel_speed_fl"] + df["wheel_speed_fr"]) / 2.0
+        rear = (df["wheel_speed_rl"] + df["wheel_speed_rr"]) / 2.0
+        valid = front > 3.0
+        slip_pct = ((rear - front) / front * 100).where(valid)
+        peak_slip = float(slip_pct.max()) if valid.any() else 0.0
+        spin = slip_pct > SPIN_THRESHOLD_PCT
+        spin_window = ([round(float(df.loc[spin.fillna(False), "t_rel"].min()), 2),
+                        round(float(df.loc[spin.fillna(False), "t_rel"].max()), 2)] if spin.any() else None)
+        slip_block = {"available": True, "peak_pct": round(peak_slip, 1), "spin_window_s": spin_window}
+        if peak_slip > 10:
+            flags.append({"sev": "FLAG", "metric": "slip", "msg": f"{peak_slip:.0f}% peak launch slip"}); deductions += 15
+        elif peak_slip > 5:
+            deductions += 6
     else:
-        spin_window = None
-    slip_block = {"peak_pct": round(peak_slip, 1), "spin_window_s": spin_window}
-    if peak_slip > 10:
-        flags.append({"sev": "FLAG", "metric": "slip", "msg": f"{peak_slip:.0f}% peak launch slip"}); deductions += 15
-    elif peak_slip > 5:
-        deductions += 6
+        peak_slip = None
+        slip_block = {"available": False,
+                      "note": "no wheel-speed channels logged — live slip unavailable; using 60-ft + pyrometer"}
 
     # --- 60-ft from the bound timeslip ---
     slip_row = conn.execute(
@@ -68,12 +72,18 @@ def score_traction(conn, run_id: int) -> dict:
                       "launch_psi": tire["cold_psi_r"]}
 
     # --- convergence: do the two reads agree on direction? ---
-    outcome_call = "lower pressure / more bite" if peak_slip > 8 else "near optimal"
-    converge = {"outcome_read": outcome_call, "pyro_read": pyro_call}
-    if pyro_call and (
-        (pyro_call.startswith("over") and "lower" not in outcome_call and peak_slip <= 8)
-        or (pyro_call.startswith("under") and peak_slip > 8)
-    ):
+    if peak_slip is not None:
+        outcome_call = "lower pressure / more bite" if peak_slip > 8 else "near optimal"
+        basis = "live slip"
+    elif sixty is not None:
+        outcome_call = "lower pressure / more prep" if sixty > 1.45 else "60-ft in range"
+        basis = "60-ft"
+    else:
+        outcome_call, basis = "unknown", "none"
+    converge = {"outcome_read": outcome_call, "pyro_read": pyro_call, "basis": basis}
+    over, under = bool(pyro_call and pyro_call.startswith("over")), bool(pyro_call and pyro_call.startswith("under"))
+    wants_lower = "lower" in outcome_call
+    if pyro_call and ((over and not wants_lower) or (under and wants_lower)):
         converge["agree"] = False
         flags.append({"sev": "INFO", "metric": "convergence", "msg": "outcome and pyrometer reads disagree on pressure"})
     else:
@@ -102,5 +112,6 @@ if __name__ == "__main__":
     conn = connect(pathlib.Path(a.db))
     rid = a.run_id or latest_run_id(conn)
     tr = score_traction(conn, rid)
-    print(f"component 08: traction score {tr['score']}/100  peak slip {tr['slip']['peak_pct']}%  "
+    slip_txt = f"{tr['slip']['peak_pct']}%" if tr["slip"].get("available") else "n/a (no wheel speeds)"
+    print(f"component 08: traction score {tr['score']}/100  peak slip {slip_txt}  "
           f"60ft {tr['sixty']['sixty_ft_s']}  pyro {tr['pyro']['call'] if tr['pyro'] else 'n/a'}")

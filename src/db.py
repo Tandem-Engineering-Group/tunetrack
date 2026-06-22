@@ -57,12 +57,23 @@ def reset_db(db_path: pathlib.Path | None = None) -> sqlite3.Connection:
 
 def _to_wide(df: pd.DataFrame) -> pd.DataFrame:
     """Long samples (ts_abs, channel, value) -> wide frame indexed by ts_abs,
-    with an added ``t_rel`` elapsed-seconds column."""
+    with an added ``t_rel`` elapsed-seconds column and derived channels."""
     if df.empty:
         return df
     wide = df.pivot_table(index="ts_abs", columns="channel", values="value", aggfunc="mean").sort_index()
     ts = pd.to_datetime(wide.index)
     wide.insert(0, "t_rel", (ts - ts[0]).total_seconds())
+
+    # Derived: injector duty % from per-cylinder pulse width when a duty channel
+    # isn't logged (4-stroke: duty = PW_ms * RPM / 1200).
+    pw_cols = [c for c in wide.columns if c.startswith("inj_pw_")]
+    if "inj_duty_pct" not in wide.columns and pw_cols and "engine_rpm" in wide.columns:
+        pw_mean = wide[pw_cols].mean(axis=1)
+        wide["inj_duty_pct"] = (pw_mean * wide["engine_rpm"] / 1200.0).clip(0, 100)
+    # Derived: true boost from MAP - barometric (falls back to standard atm).
+    if "map_kpa" in wide.columns:
+        atm = wide["baro_kpa"] if "baro_kpa" in wide.columns else 101.3
+        wide["boost_psi"] = (wide["map_kpa"] - atm) / 6.895
     return wide
 
 

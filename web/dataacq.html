@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TuneTrack — Data Acquisition</title>
+<style>
+  :root{--bg:#121419;--panel:#1A1E25;--panel2:#222831;--line:#2C333D;--ink:#F3F6F9;
+    --mut:#8A95A1;--amber:#F2640A;--cyan:#19B9CC;--green:#3FCF6B;--red:#F0473E;--yellow:#F2B705;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:Calibri,Segoe UI,system-ui,sans-serif;padding:14px}
+  .wrap{max-width:1100px;margin:0 auto}
+  a{color:var(--cyan);text-decoration:none}
+  .banner{background:#3a2a10;border:1px solid var(--amber);color:var(--yellow);font-size:12px;padding:7px 12px;border-radius:9px;margin-bottom:12px;text-align:center}
+  .eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+  h1{font-family:Cambria,Georgia,serif;font-size:24px;margin:2px 0}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:14px}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--panel);border-radius:13px;padding:12px;margin-bottom:14px;font-size:12px}
+  .flow .step{background:var(--panel2);border-radius:8px;padding:6px 11px;font-weight:700}
+  .flow .arr{color:var(--mut)}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)}
+  .dot{width:11px;height:11px;border-radius:3px}
+  .sec{font-size:12px;font-weight:800;letter-spacing:.04em;margin:4px 0 8px}
+  .grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));margin-bottom:16px}
+  .card{background:var(--panel);border-radius:13px;padding:13px}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .card .dev{font-family:Cambria,serif;font-size:15px;font-weight:700}
+  .badge{font-size:10px;font-weight:800;padding:2px 9px;border-radius:99px;white-space:nowrap}
+  .row{display:flex;gap:7px;margin-top:8px;font-size:12px;line-height:1.45}
+  .row .k{color:var(--mut);min-width:62px;flex-shrink:0}
+  .row .v{color:#C7CDD4}
+  .hint{font-size:11px;color:var(--mut);margin-top:8px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner" id="banner">⚠ SYNTHETIC demo data — generated, not measured. Read-only to the PCM.</div>
+  <div class="eyebrow">TuneTrack · data acquisition &nbsp;·&nbsp; <a href="index.html">← hub</a></div>
+  <h1>Data acquisition &amp; comms</h1>
+  <div class="sub">Every source feeding the pipeline — what it measures, how it communicates, and the buy / check list.</div>
+
+  <div class="flow">
+    <span class="step">Capture (in-car + trackside)</span><span class="arr">→</span>
+    <span class="step">OneDrive / SharePoint · 01_Inbox</span><span class="arr">→</span>
+    <span class="step">Pipeline (tunetrack.db)</span><span class="arr">→</span>
+    <span class="step">Portals (read-only)</span>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <div id="sections"></div>
+  <div class="hint">Read-only with respect to the PCM. Colors match the engine portal's “sensors by source”. Device list from the pipeline export.</div>
+</div>
+
+<script src="data.js"></script>
+<script>
+const TT=window.TUNETRACK_DATA||{};
+const SRC=TT.sources||{}, ST=TT.acq_status||{
+  have:{label:"In use",color:"#3FCF6B"},check:{label:"To check",color:"#F2B705"},
+  buy:{label:"To buy",color:"#19B9CC"},dropped:{label:"Dropped",color:"#8A95A1"}};
+const ACQ=TT.acquisition||[];
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+if(TT.meta) document.getElementById("banner").textContent=
+  "⚠ "+TT.meta.data_source+" demo data — device list & comms paths. Read-only to the PCM.";
+
+// legend (status)
+document.getElementById("legend").innerHTML=Object.keys(ST).map(function(k){var m=ST[k];
+  return '<span><span class="dot" style="background:'+m.color+'"></span>'+esc(m.label)+'</span>';}).join("");
+
+// sections grouped by status, in this order
+const order=["have","check","buy","dropped"];
+document.getElementById("sections").innerHTML=order.map(function(stkey){
+  var items=ACQ.filter(function(a){return a.status===stkey;}); if(!items.length) return "";
+  var sm=ST[stkey]||{label:stkey,color:"#888"};
+  var cards=items.map(function(a){
+    var col=(SRC[a.source]||{}).color||"#888";
+    var strike=stkey==="dropped"?"text-decoration:line-through;opacity:.7":"";
+    return '<div class="card" style="border-left:3px solid '+col+'">'
+      +'<div class="top"><span class="dev" style="'+strike+'">'+esc(a.device)+'</span>'
+      +'<span class="badge" style="background:'+sm.color+'22;color:'+sm.color+'">'+esc(sm.label)+'</span></div>'
+      +'<div class="row"><span class="k">Measures</span><span class="v">'+esc(a.measures)+'</span></div>'
+      +'<div class="row"><span class="k">Comms</span><span class="v">'+esc(a.comms)+'</span></div>'
+      +'<div class="row"><span class="k">To pipeline</span><span class="v">'+esc(a.transfer)+'</span></div></div>';
+  }).join("");
+  return '<div class="sec" style="color:'+sm.color+'">'+esc(sm.label).toUpperCase()+' ('+items.length+')</div><div class="grid">'+cards+'</div>';
+}).join("") || '<div class="sub">No acquisition data — run the pipeline to populate it.</div>';
+</script>
+</body>
+</html>

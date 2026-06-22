@@ -110,11 +110,52 @@ def _engine_snapshot(df: pd.DataFrame) -> list:
 SOURCE_META = {
     "vcm":      {"label": "VCM Scanner", "device": "HP Tuners MPVI3 -> PCM", "color": "#19B9CC"},
     "timeslip": {"label": "Timeslip / Dragy", "device": "track card + GPS", "color": "#F2640A"},
-    "kestrel":  {"label": "Kestrel", "device": "weather meter / density alt", "color": "#5BC8F5"},
     "pyro":     {"label": "Pyrometer", "device": "tire tread temps", "color": "#F472B6"},
     "manual":   {"label": "Manual / build", "device": "entered by hand", "color": "#9AA5B1"},
     "toadd":    {"label": "Not logged yet", "device": "add to VCM layout", "color": "#556070"},
 }
+
+# Data-acquisition catalog: every source, how it communicates, and its status.
+STATUS_META = {
+    "have":    {"label": "In use", "color": "#3FCF6B"},
+    "check":   {"label": "To check", "color": "#F2B705"},
+    "buy":     {"label": "To buy", "color": "#19B9CC"},
+    "dropped": {"label": "Dropped", "color": "#8A95A1"},
+}
+ACQUISITION = [
+    {"device": "VCM Scanner (MPVI3)", "source": "vcm", "status": "have",
+     "measures": "Engine / power / safety channels, barometric, ambient temp, vehicle speed",
+     "comms": "OBD-II port -> vehicle CAN bus -> MPVI3 -> USB (Surface)",
+     "transfer": ".hpl log -> export CSV -> OneDrive/SharePoint -> 01_Inbox"},
+    {"device": "Dragy", "source": "timeslip", "status": "have",
+     "measures": "ET, trap, 0-60, GPS ground speed (slip reference)",
+     "comms": "GPS satellites -> device -> Bluetooth (phone app)",
+     "transfer": "export CSV -> run folder / 01_Inbox"},
+    {"device": "Timeslip (track)", "source": "timeslip", "status": "have",
+     "measures": "RT, 60-ft, 330, 1/8 & 1/4 ET + MPH",
+     "comms": "track timing beams -> printed card",
+     "transfer": "photo -> OCR / manual entry"},
+    {"device": "Pyrometer", "source": "pyro", "status": "have",
+     "measures": "Tire tread temps (cross-tread, in/ctr/out)",
+     "comms": "handheld probe, manual read",
+     "transfer": "hand-entered on the build/manual sheet"},
+    {"device": "Manual / build sheet", "source": "manual", "status": "have",
+     "measures": "Combo (pulley/pump/injectors/E85%), tire pressures, set tracking",
+     "comms": "human",
+     "transfer": "entered by hand"},
+    {"device": "Wheel-speed channels", "source": "toadd", "status": "check",
+     "measures": "Per-wheel speed -> live launch slip",
+     "comms": "ABS/TCM module -> CAN bus -> VCM Scanner (only if exposed)",
+     "transfer": "VCM Scanner: Add Channel -> search 'wheel'; if present, add to the layout"},
+    {"device": "Hygrometer (~$20)", "source": "manual", "status": "buy",
+     "measures": "Relative humidity (refines density altitude)",
+     "comms": "handheld, manual read",
+     "transfer": "OPTIONAL -- humidity is otherwise assumed; DA is only weakly sensitive"},
+    {"device": "Kestrel weather meter", "source": "vcm", "status": "dropped",
+     "measures": "Air temp / baro / humidity / density altitude",
+     "comms": "handheld weather meter",
+     "transfer": "REPLACED -- density altitude now computed from the log (baro + ambient temp)"},
+]
 
 
 def _sensor_sources(run: dict, build: dict | None) -> list:
@@ -124,9 +165,16 @@ def _sensor_sources(run: dict, build: dict | None) -> list:
     def num(v, nd=1):
         return round(float(v), nd) if isinstance(v, (int, float)) else v
 
-    # VCM Scanner — the logged PCM channels (peak-pass snapshot)
+    # VCM Scanner — logged PCM channels + air/DA (now computed from the log, no Kestrel)
     vcm = [{"label": s["label"], "value": s["value_at_peak"], "unit": s["unit"]}
            for s in run.get("engine_snapshot", [])]
+    wx = run.get("weather") or {}
+    if wx.get("temp_c") is not None:
+        vcm.append({"label": "Ambient air", "value": num(wx["temp_c"]), "unit": "C"})
+    if wx.get("baro_kpa") is not None:
+        vcm.append({"label": "Barometric", "value": num(wx["baro_kpa"]), "unit": "kPa"})
+    if wx.get("density_altitude_ft") is not None:
+        vcm.append({"label": "Density alt (calc)", "value": num(wx["density_altitude_ft"]), "unit": "ft"})
     if vcm:
         groups.append({"key": "vcm", "items": vcm})
 
@@ -139,15 +187,6 @@ def _sensor_sources(run: dict, build: dict | None) -> list:
     ] if ts.get(k) is not None]
     if tsi:
         groups.append({"key": "timeslip", "items": tsi})
-
-    # Kestrel — air / density altitude
-    wx = run.get("weather") or {}
-    wxi = [{"label": lab, "value": num(wx[k]), "unit": u} for lab, k, u in [
-        ("Air temp", "temp_c", "C"), ("Humidity", "humidity_pct", "%"),
-        ("Baro", "baro_kpa", "kPa"), ("Density alt", "density_altitude_ft", "ft"),
-    ] if wx.get(k) is not None]
-    if wxi:
-        groups.append({"key": "kestrel", "items": wxi})
 
     # Pyrometer — tread temps
     tire = run.get("tire") or {}
@@ -261,6 +300,8 @@ def build_report(conn) -> dict:
         },
         "build_state": build,
         "sources": SOURCE_META,
+        "acquisition": ACQUISITION,
+        "acq_status": STATUS_META,
         "runs": runs,
         "analysis": analysis,
         "forecast": forecast,

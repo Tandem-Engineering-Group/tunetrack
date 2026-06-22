@@ -1,8 +1,10 @@
-"""Component 05 -- per-pass air model: density altitude from T / RH / baro.
+"""Component 05 -- per-pass air model: density altitude.
 
 Density altitude is the single most important correction for fair cross-run
-comparison. The DA computation below is real (NWS-style); only the input
-observation is DUMMY for the demo -- replace with Kestrel readings.
+comparison. It is now computed straight from the LOG (the car records
+Barometric Pressure + Ambient Air Temp), so no Kestrel/manual entry is needed.
+Relative humidity isn't logged, so it's assumed (DA is only weakly sensitive to
+it); override via the humidity_pct arg or by passing wx= explicitly.
 
 Read-only with respect to the PCM.
 """
@@ -11,10 +13,11 @@ import argparse
 import math
 import pathlib
 
-from db import connect, latest_run_id, DB_PATH, SYNTHETIC_TAG
+from db import connect, latest_run_id, log_frame, DB_PATH, SYNTHETIC_TAG
 
-# DUMMY observation (warm summer evening) -- replace with the Kestrel reading.
-DEMO_WX = dict(temp_c=29.0, humidity_pct=55.0, baro_kpa=99.2)
+ASSUMED_RH = 50.0
+# Fallback only (no baro/ambient in the log) -- otherwise we read from the log.
+DEMO_WX = dict(temp_c=29.0, humidity_pct=ASSUMED_RH, baro_kpa=99.2)
 
 
 def saturation_vapor_pressure_hpa(temp_c: float) -> float:
@@ -40,13 +43,32 @@ def density_altitude_ft(temp_c: float, humidity_pct: float, baro_kpa: float) -> 
     return da
 
 
-def record_weather(conn, run_id: int | None = None, wx: dict | None = None) -> int:
-    wx = dict(wx or DEMO_WX)
+def weather_from_log(conn, run_id: int, humidity_pct: float = ASSUMED_RH):
+    """Derive (temp, humidity, baro) from the log: median Barometric Pressure +
+    Ambient Air Temp. Returns (wx_dict, source) or (None, None) if unavailable."""
+    row = conn.execute("SELECT log_id FROM runs WHERE run_id=?", (run_id,)).fetchone()
+    if not row:
+        return None, None
+    df = log_frame(conn, row["log_id"])
+    if "baro_kpa" in df.columns and "ambient_temp_c" in df.columns and len(df):
+        wx = {"temp_c": round(float(df["ambient_temp_c"].median()), 1),
+              "humidity_pct": humidity_pct,
+              "baro_kpa": round(float(df["baro_kpa"].median()), 2)}
+        return wx, "VCM log (baro + ambient temp); RH assumed"
+    return None, None
+
+
+def record_weather(conn, run_id: int | None = None, wx: dict | None = None,
+                   humidity_pct: float = ASSUMED_RH) -> int:
     run_id = run_id or latest_run_id(conn)
-    obs_time = None
-    if run_id is not None:
-        row = conn.execute("SELECT ts_start FROM runs WHERE run_id=?", (run_id,)).fetchone()
-        obs_time = row["ts_start"] if row else None
+    row = conn.execute("SELECT ts_start FROM runs WHERE run_id=?", (run_id,)).fetchone() if run_id else None
+    obs_time = row["ts_start"] if row else None
+
+    source = "manual / provided"
+    if wx is None and run_id is not None:
+        wx, source = weather_from_log(conn, run_id, humidity_pct)
+    if wx is None:
+        wx, source = dict(DEMO_WX), "fallback (no baro/ambient in log)"
 
     da = round(density_altitude_ft(**wx), 0)
     conn.execute("DELETE FROM weather")  # demo: single observation
@@ -56,6 +78,7 @@ def record_weather(conn, run_id: int | None = None, wx: dict | None = None) -> i
         (obs_time, wx["temp_c"], wx["humidity_pct"], wx["baro_kpa"], da),
     )
     conn.commit()
+    record_weather.last_source = source
     return cur.lastrowid
 
 
@@ -66,6 +89,6 @@ if __name__ == "__main__":
     conn = connect(pathlib.Path(a.db))
     wid = record_weather(conn)
     w = conn.execute("SELECT * FROM weather WHERE wx_id=?", (wid,)).fetchone()
-    print(f"component 05: wx_id={wid}  [{SYNTHETIC_TAG} obs]  "
-          f"{w['temp_c']}C / {w['humidity_pct']}% / {w['baro_kpa']}kPa  "
+    print(f"component 05: wx_id={wid}  source={getattr(record_weather,'last_source','?')}  "
+          f"{w['temp_c']}C / {w['humidity_pct']}% RH / {w['baro_kpa']}kPa  "
           f"-> DA {w['density_altitude_ft']:.0f} ft")

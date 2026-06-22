@@ -1,6 +1,6 @@
 window.TUNETRACK_DATA = {
   "meta": {
-    "generated_at": "2026-06-22 17:29:12.406883",
+    "generated_at": "2026-06-22 18:04:55.139108",
     "data_source": "SYNTHETIC",
     "disclaimer": "SYNTHETIC demo data \u2014 generated, not measured. Read-only; no calibration is written or flashed.",
     "car": "2020 Dodge Challenger SRT Hellcat Redeye"
@@ -31,11 +31,6 @@ window.TUNETRACK_DATA = {
       "device": "track card + GPS",
       "color": "#F2640A"
     },
-    "kestrel": {
-      "label": "Kestrel",
-      "device": "weather meter / density alt",
-      "color": "#5BC8F5"
-    },
     "pyro": {
       "label": "Pyrometer",
       "device": "tire tread temps",
@@ -50,6 +45,90 @@ window.TUNETRACK_DATA = {
       "label": "Not logged yet",
       "device": "add to VCM layout",
       "color": "#556070"
+    }
+  },
+  "acquisition": [
+    {
+      "device": "VCM Scanner (MPVI3)",
+      "source": "vcm",
+      "status": "have",
+      "measures": "Engine / power / safety channels, barometric, ambient temp, vehicle speed",
+      "comms": "OBD-II port -> vehicle CAN bus -> MPVI3 -> USB (Surface)",
+      "transfer": ".hpl log -> export CSV -> OneDrive/SharePoint -> 01_Inbox"
+    },
+    {
+      "device": "Dragy",
+      "source": "timeslip",
+      "status": "have",
+      "measures": "ET, trap, 0-60, GPS ground speed (slip reference)",
+      "comms": "GPS satellites -> device -> Bluetooth (phone app)",
+      "transfer": "export CSV -> run folder / 01_Inbox"
+    },
+    {
+      "device": "Timeslip (track)",
+      "source": "timeslip",
+      "status": "have",
+      "measures": "RT, 60-ft, 330, 1/8 & 1/4 ET + MPH",
+      "comms": "track timing beams -> printed card",
+      "transfer": "photo -> OCR / manual entry"
+    },
+    {
+      "device": "Pyrometer",
+      "source": "pyro",
+      "status": "have",
+      "measures": "Tire tread temps (cross-tread, in/ctr/out)",
+      "comms": "handheld probe, manual read",
+      "transfer": "hand-entered on the build/manual sheet"
+    },
+    {
+      "device": "Manual / build sheet",
+      "source": "manual",
+      "status": "have",
+      "measures": "Combo (pulley/pump/injectors/E85%), tire pressures, set tracking",
+      "comms": "human",
+      "transfer": "entered by hand"
+    },
+    {
+      "device": "Wheel-speed channels",
+      "source": "toadd",
+      "status": "check",
+      "measures": "Per-wheel speed -> live launch slip",
+      "comms": "ABS/TCM module -> CAN bus -> VCM Scanner (only if exposed)",
+      "transfer": "VCM Scanner: Add Channel -> search 'wheel'; if present, add to the layout"
+    },
+    {
+      "device": "Hygrometer (~$20)",
+      "source": "manual",
+      "status": "buy",
+      "measures": "Relative humidity (refines density altitude)",
+      "comms": "handheld, manual read",
+      "transfer": "OPTIONAL -- humidity is otherwise assumed; DA is only weakly sensitive"
+    },
+    {
+      "device": "Kestrel weather meter",
+      "source": "vcm",
+      "status": "dropped",
+      "measures": "Air temp / baro / humidity / density altitude",
+      "comms": "handheld weather meter",
+      "transfer": "REPLACED -- density altitude now computed from the log (baro + ambient temp)"
+    }
+  ],
+  "acq_status": {
+    "have": {
+      "label": "In use",
+      "color": "#3FCF6B"
+    },
+    "check": {
+      "label": "To check",
+      "color": "#F2B705"
+    },
+    "buy": {
+      "label": "To buy",
+      "color": "#19B9CC"
+    },
+    "dropped": {
+      "label": "Dropped",
+      "color": "#8A95A1"
     }
   },
   "runs": [
@@ -211,9 +290,9 @@ window.TUNETRACK_DATA = {
         "wx_id": 1,
         "obs_time": "2026-06-20 19:42:14.120000",
         "temp_c": 29.0,
-        "humidity_pct": 55.0,
-        "baro_kpa": 99.2,
-        "density_altitude_ft": 2690.0
+        "humidity_pct": 50.0,
+        "baro_kpa": 99.0,
+        "density_altitude_ft": 2731.0
       },
       "tire": {
         "tire_id": 1,
@@ -1955,14 +2034,14 @@ window.TUNETRACK_DATA = {
           "label": "Blower bypass",
           "meaning": "Supercharger bypass position; closes to build boost, opens off-throttle.",
           "unit": "%",
-          "value_at_peak": 4.1
+          "value_at_peak": 4.9
         },
         {
           "channel": "total_airflow",
           "label": "Airflow",
           "meaning": "Total mass airflow into the engine \u2014 load indicator.",
           "unit": "g/s",
-          "value_at_peak": 535.0
+          "value_at_peak": 534.0
         },
         {
           "channel": "tps_pct",
@@ -2088,14 +2167,14 @@ window.TUNETRACK_DATA = {
           "label": "Actual torque",
           "meaning": "Engine torque estimate; vs Expected shows if a limiter is holding it back.",
           "unit": "N m",
-          "value_at_peak": 886.0
+          "value_at_peak": 897.0
         },
         {
           "channel": "cm_voltage",
           "label": "System voltage",
           "meaning": "Control-module supply voltage.",
           "unit": "V",
-          "value_at_peak": 14.07
+          "value_at_peak": 14.05
         }
       ],
       "sensor_sources": [
@@ -2134,12 +2213,12 @@ window.TUNETRACK_DATA = {
             },
             {
               "label": "Blower bypass",
-              "value": 4.1,
+              "value": 4.9,
               "unit": "%"
             },
             {
               "label": "Airflow",
-              "value": 535.0,
+              "value": 534.0,
               "unit": "g/s"
             },
             {
@@ -2229,13 +2308,28 @@ window.TUNETRACK_DATA = {
             },
             {
               "label": "Actual torque",
-              "value": 886.0,
+              "value": 897.0,
               "unit": "N m"
             },
             {
               "label": "System voltage",
-              "value": 14.07,
+              "value": 14.05,
               "unit": "V"
+            },
+            {
+              "label": "Ambient air",
+              "value": 29.0,
+              "unit": "C"
+            },
+            {
+              "label": "Barometric",
+              "value": 99.0,
+              "unit": "kPa"
+            },
+            {
+              "label": "Density alt (calc)",
+              "value": 2731.0,
+              "unit": "ft"
             }
           ]
         },
@@ -2281,31 +2375,6 @@ window.TUNETRACK_DATA = {
               "label": "1/4 MPH",
               "value": 143.2,
               "unit": "mph"
-            }
-          ]
-        },
-        {
-          "key": "kestrel",
-          "items": [
-            {
-              "label": "Air temp",
-              "value": 29.0,
-              "unit": "C"
-            },
-            {
-              "label": "Humidity",
-              "value": 55.0,
-              "unit": "%"
-            },
-            {
-              "label": "Baro",
-              "value": 99.2,
-              "unit": "kPa"
-            },
-            {
-              "label": "Density alt",
-              "value": 2690.0,
-              "unit": "ft"
             }
           ]
         },
@@ -2511,17 +2580,17 @@ window.TUNETRACK_DATA = {
     },
     "passes_used": 1,
     "gate_passed": 1,
-    "created_at": "2026-06-22 17:29:12.280698"
+    "created_at": "2026-06-22 17:44:33.168349"
   },
   "forecast": {
     "forecast_id": 1,
     "for_window": "next run (+~30 min, evening)",
-    "da_ft": 2441.0,
+    "da_ft": 2486.0,
     "da_uncertainty": 300.0,
     "track_temp_c": 35.0,
     "source": "SYNTHETIC: evening cool-down model",
     "tire_heat_cycles": 7,
-    "created_at": "2026-06-22 17:29:12.285433"
+    "created_at": "2026-06-22 17:44:33.174553"
   },
   "retune": [
     {
@@ -2538,7 +2607,7 @@ window.TUNETRACK_DATA = {
       "guardrail_flag": null,
       "rationale": "Pull 1.0deg here; knock is direct evidence, pulling timing is always safe.",
       "status": "proposed",
-      "created_at": "2026-06-22 17:29:12.316193"
+      "created_at": "2026-06-22 17:44:33.210575"
     },
     {
       "rec_id": 2,
@@ -2554,7 +2623,7 @@ window.TUNETRACK_DATA = {
       "guardrail_flag": null,
       "rationale": "Pull 1.0deg here; knock is direct evidence, pulling timing is always safe.",
       "status": "proposed",
-      "created_at": "2026-06-22 17:29:12.316248"
+      "created_at": "2026-06-22 17:44:33.210634"
     },
     {
       "rec_id": 3,
@@ -2570,7 +2639,7 @@ window.TUNETRACK_DATA = {
       "guardrail_flag": "STEP_IN",
       "rationale": "Drop ~1.5 psi (small step into new territory) to settle launch spin; verify on the next pass.",
       "status": "proposed",
-      "created_at": "2026-06-22 17:29:12.316298"
+      "created_at": "2026-06-22 17:44:33.210697"
     }
   ],
   "maintenance": [

@@ -23,6 +23,7 @@ COLUMNS = [
     ("Trans Current Gear", ""), ("Shift ID", ""),
     ("Barometric Pressure", "kPa"), ("Manifold Absolute Pressure", "kPa"),
     ("Throttle Position (SAE)", "%"),
+    ("Ambient Air Temp", "deg C"),
     ("Aircharge Temperature", "deg C"), ("Engine Coolant Temp", "deg C"),
     ("Engine Oil Temp", "deg C"), ("Engine Oil Pressure", "kPa"),
     ("LTR Coolant Temp", "deg C"), ("LTR Pump Speed", "RPM"),
@@ -121,6 +122,7 @@ def build(seed: int = 7):
     ltr = 41.0 + 0.10 * np.clip(t - launch_t, 0, None) + nz(0.2)
     ltr_pump = 1500.0 + load * 2700.0 + nz(40)
     iat = 38.0 + 0.6 * np.clip(t - launch_t, 0, None) + boost_psi.clip(0) * 0.3 + nz(0.4)
+    ambient = 29.0 + nz(0.08)   # outside air temp (steady) -> density altitude
 
     airflow = 6.0 + (rpm / 6300.0) * (map_kpa / BOOST_TARGET_KPA) * 540.0 * load + nz(3)
     cyl_air = airflow * 1.4 + nz(2)
@@ -135,7 +137,7 @@ def build(seed: int = 7):
         "Offset": t, "Engine RPM": rpm, "Vehicle Speed": speed,
         "Trans Current Gear": gear, "Shift ID": shiftid,
         "Barometric Pressure": baro, "Manifold Absolute Pressure": map_kpa,
-        "Throttle Position (SAE)": tps, "Aircharge Temperature": iat,
+        "Throttle Position (SAE)": tps, "Ambient Air Temp": ambient, "Aircharge Temperature": iat,
         "Engine Coolant Temp": ect, "Engine Oil Temp": oilt, "Engine Oil Pressure": oilp,
         "LTR Coolant Temp": ltr, "LTR Pump Speed": ltr_pump,
         "Total Airflow": airflow.clip(0), "Cylinder Airmass": cyl_air.clip(0),

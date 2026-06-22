@@ -115,6 +115,48 @@ SOURCE_META = {
     "toadd":    {"label": "Not logged yet", "device": "add to VCM layout", "color": "#556070"},
 }
 
+# Data-acquisition catalog: every source, how it communicates, and its status.
+STATUS_META = {
+    "have":    {"label": "In use", "color": "#3FCF6B"},
+    "check":   {"label": "To check", "color": "#F2B705"},
+    "buy":     {"label": "To buy", "color": "#19B9CC"},
+    "dropped": {"label": "Dropped", "color": "#8A95A1"},
+}
+ACQUISITION = [
+    {"device": "VCM Scanner (MPVI3)", "source": "vcm", "status": "have",
+     "measures": "Engine / power / safety channels, barometric, ambient temp, vehicle speed",
+     "comms": "OBD-II port -> vehicle CAN bus -> MPVI3 -> USB (Surface)",
+     "transfer": ".hpl log -> export CSV -> OneDrive/SharePoint -> 01_Inbox"},
+    {"device": "Dragy", "source": "timeslip", "status": "have",
+     "measures": "ET, trap, 0-60, GPS ground speed (slip reference)",
+     "comms": "GPS satellites -> device -> Bluetooth (phone app)",
+     "transfer": "export CSV -> run folder / 01_Inbox"},
+    {"device": "Timeslip (track)", "source": "timeslip", "status": "have",
+     "measures": "RT, 60-ft, 330, 1/8 & 1/4 ET + MPH",
+     "comms": "track timing beams -> printed card",
+     "transfer": "photo -> OCR / manual entry"},
+    {"device": "Pyrometer", "source": "pyro", "status": "have",
+     "measures": "Tire tread temps (cross-tread, in/ctr/out)",
+     "comms": "handheld probe, manual read",
+     "transfer": "hand-entered on the build/manual sheet"},
+    {"device": "Manual / build sheet", "source": "manual", "status": "have",
+     "measures": "Combo (pulley/pump/injectors/E85%), tire pressures, set tracking",
+     "comms": "human",
+     "transfer": "entered by hand"},
+    {"device": "Wheel-speed channels", "source": "toadd", "status": "check",
+     "measures": "Per-wheel speed -> live launch slip",
+     "comms": "ABS/TCM module -> CAN bus -> VCM Scanner (only if exposed)",
+     "transfer": "VCM Scanner: Add Channel -> search 'wheel'; if present, add to the layout"},
+    {"device": "Hygrometer (~$20)", "source": "manual", "status": "buy",
+     "measures": "Relative humidity (refines density altitude)",
+     "comms": "handheld, manual read",
+     "transfer": "OPTIONAL -- humidity is otherwise assumed; DA is only weakly sensitive"},
+    {"device": "Kestrel weather meter", "source": "vcm", "status": "dropped",
+     "measures": "Air temp / baro / humidity / density altitude",
+     "comms": "handheld weather meter",
+     "transfer": "REPLACED -- density altitude now computed from the log (baro + ambient temp)"},
+]
+
 
 def _sensor_sources(run: dict, build: dict | None) -> list:
     """Group every value by the device it comes from, for the colour-coded map."""
@@ -258,6 +300,8 @@ def build_report(conn) -> dict:
         },
         "build_state": build,
         "sources": SOURCE_META,
+        "acquisition": ACQUISITION,
+        "acq_status": STATUS_META,
         "runs": runs,
         "analysis": analysis,
         "forecast": forecast,

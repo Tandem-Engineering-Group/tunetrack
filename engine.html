@@ -180,9 +180,6 @@ const SENSORS=[
   {k:"egt",lab:"Exhaust temp",unit:"°C",max:1000,
    mean:"Exhaust gas temperature — a window into combustion. Too high points at a lean mixture or too much timing. On E85 it generally runs cooler than gas, which is part of why E85 is friendly to boost.",
    read:v=>v<880?["In band","ok"]:v<940?["High","warn"]:["Too hot — lean/timing","bad"]},
-  {k:"slip",lab:"Rear slip",unit:"%",max:45,
-   mean:"How much faster the driven wheels are turning than the car is moving — measured from wheel-speed channels. A big spike at launch is wheelspin; the fix is launch pressure and track prep, not power.",
-   read:v=>v<12?["Hooked","ok"]:v<25?["Some spin","warn"]:["Spinning","bad"]},
 ];
 
 /* ---- mode target states ---- */
@@ -347,18 +344,38 @@ requestAnimationFrame(frame);
 </script>
 <script src="data.js"></script>
 <script>
-/* surface the real last-pass peak snapshot + banner from the pipeline export */
+/* render every channel colour-coded by the device it comes from */
 (function(){
   const TT=window.TUNETRACK_DATA; if(!TT) return;
   const b=document.getElementById("eng-banner");
-  if(b) b.textContent="⚠ "+TT.meta.data_source+" demo data — interactive model is illustrative; the snapshot below is your last pass's real peak values. Read-only to the PCM.";
-  const run=(TT.runs||[])[0]; if(!run||!run.engine_snapshot||!run.engine_snapshot.length) return;
-  const el=document.getElementById("lastpass"); el.style.display="";
-  el.innerHTML='<div class="eyebrow" style="margin-bottom:8px">Last pass — peak-power snapshot (run '+run.run_id+')</div>'+
-    '<div class="grid">'+run.engine_snapshot.map(function(s){
-      return '<div class="g" style="cursor:default" title="'+(s.meaning||"").replace(/"/g,"&quot;")+'"><div class="lab">'+s.label+
-      '</div><div><span class="val">'+s.value_at_peak+'</span> <span class="u">'+s.unit+'</span></div></div>';
-    }).join("")+'</div>';
+  if(b) b.textContent="⚠ "+TT.meta.data_source+" demo data — the live model is illustrative; the map below is your real channels, colour-coded by the device each comes from. Read-only to the PCM.";
+  const run=(TT.runs||[])[0]; const SRC=TT.sources||{};
+  const el=document.getElementById("lastpass"); if(!el||!run) return;
+  el.style.display="";
+  const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+
+  let html='<div class="eyebrow" style="margin-bottom:8px">Sensors — by source (last pass, run '+run.run_id+')</div>';
+  // legend
+  html+='<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px">';
+  Object.keys(SRC).forEach(function(k){var m=SRC[k];
+    html+='<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--mut)">'
+      +'<span style="width:11px;height:11px;border-radius:3px;background:'+m.color+'"></span>'
+      +'<b style="color:#C7CDD4;font-weight:700">'+esc(m.label)+'</b> <span style="opacity:.6">· '+esc(m.device)+'</span></span>';});
+  html+='</div>';
+
+  const groups=(run.sensor_sources&&run.sensor_sources.length)
+    ? run.sensor_sources
+    : [{key:"vcm",items:(run.engine_snapshot||[]).map(s=>({label:s.label,value:s.value_at_peak,unit:s.unit}))}];
+  html+=groups.map(function(g){ var m=SRC[g.key]||{label:g.key,color:"#888"};
+    var tiles=g.items.map(function(s){
+      return '<div class="g" style="cursor:default;border-left:3px solid '+m.color+'">'
+        +'<div class="lab">'+esc(s.label)+'</div>'
+        +'<div><span class="val">'+esc(s.value)+'</span> <span class="u">'+esc(s.unit||"")+'</span></div></div>';
+    }).join("");
+    return '<div style="font-size:11px;font-weight:800;letter-spacing:.04em;color:'+m.color+';margin:4px 0 6px">'
+      +esc(m.label)+'</div><div class="grid" style="margin-bottom:14px">'+tiles+'</div>';
+  }).join("");
+  el.innerHTML=html;
 })();
 </script>
 </body>

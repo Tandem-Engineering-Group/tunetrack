@@ -1,7 +1,0 @@
-__pycache__/
-*.pyc
-.venv/
-tunetrack.db
-samples/*.csv
-!samples/.gitkeep
-.DS_Store

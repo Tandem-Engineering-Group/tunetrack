@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-06-22 18:04:55.139108",
+    "generated_at": "2026-06-22 18:33:15.458059",
     "data_source": "SYNTHETIC",
     "disclaimer": "SYNTHETIC demo data \u2014 generated, not measured. Read-only; no calibration is written or flashed.",
     "car": "2020 Dodge Challenger SRT Hellcat Redeye"
@@ -11,14 +11,14 @@
     "date_to": null,
     "upper_pulley": "3.0 in",
     "lower_pulley": "stock",
-    "snout": "ported stock",
+    "snout": "stock 2.7L (Redeye)",
     "pump": "dual 525 lph (E85)",
-    "injectors": "ID1300x2",
+    "injectors": "ID1300x (E85)",
     "e85_pct": 85.0,
-    "boost_target_psi": 14.0,
-    "belt_pn": "Gates K080800HD",
-    "tune_rev": "DEMO-r1",
-    "notes": "SYNTHETIC: assumed build for end-to-end demo -- replace with real config"
+    "boost_target_psi": 12.0,
+    "belt_pn": "confirm PN",
+    "tune_rev": "E85-base",
+    "notes": "2020 Hellcat Redeye 6.2 SC, 3.0in upper pulley, E85 -- ~1000 whp goal. CONFIRM: pump / injectors / snout / ethanol % / belt PN (best-estimate). Current safe base tune ~11-12 psi; 3in-pulley headroom to ~14-15 psi as fueling is validated."
   },
   "sources": {
     "vcm": {
@@ -2438,7 +2438,7 @@
             },
             {
               "label": "Injectors",
-              "value": "ID1300x2",
+              "value": "ID1300x (E85)",
               "unit": ""
             },
             {
@@ -2448,7 +2448,7 @@
             },
             {
               "label": "Boost target",
-              "value": 14.0,
+              "value": 12.0,
               "unit": "psi"
             }
           ]
@@ -2501,27 +2501,27 @@
     "boost_vs_target_json": {
       "3500rpm": {
         "achieved_psi": 4.6,
-        "target_psi": 14.0
+        "target_psi": 12.0
       },
       "4000rpm": {
         "achieved_psi": 10.5,
-        "target_psi": 14.0
+        "target_psi": 12.0
       },
       "4500rpm": {
         "achieved_psi": 11.0,
-        "target_psi": 14.0
+        "target_psi": 12.0
       },
       "5000rpm": {
         "achieved_psi": 11.1,
-        "target_psi": 14.0
+        "target_psi": 12.0
       },
       "5500rpm": {
         "achieved_psi": 11.1,
-        "target_psi": 14.0
+        "target_psi": 12.0
       },
       "6000rpm": {
         "achieved_psi": 11.0,
-        "target_psi": 14.0
+        "target_psi": 12.0
       }
     },
     "fuel_headroom_json": {
@@ -2580,7 +2580,7 @@
     },
     "passes_used": 1,
     "gate_passed": 1,
-    "created_at": "2026-06-22 17:44:33.168349"
+    "created_at": "2026-06-22 18:33:15.258282"
   },
   "forecast": {
     "forecast_id": 1,
@@ -2590,7 +2590,7 @@
     "track_temp_c": 35.0,
     "source": "SYNTHETIC: evening cool-down model",
     "tire_heat_cycles": 7,
-    "created_at": "2026-06-22 17:44:33.174553"
+    "created_at": "2026-06-22 18:33:15.276706"
   },
   "retune": [
     {
@@ -2607,7 +2607,7 @@
       "guardrail_flag": null,
       "rationale": "Pull 1.0deg here; knock is direct evidence, pulling timing is always safe.",
       "status": "proposed",
-      "created_at": "2026-06-22 17:44:33.210575"
+      "created_at": "2026-06-22 18:33:15.324274"
     },
     {
       "rec_id": 2,
@@ -2623,7 +2623,7 @@
       "guardrail_flag": null,
       "rationale": "Pull 1.0deg here; knock is direct evidence, pulling timing is always safe.",
       "status": "proposed",
-      "created_at": "2026-06-22 17:44:33.210634"
+      "created_at": "2026-06-22 18:33:15.324402"
     },
     {
       "rec_id": 3,
@@ -2639,7 +2639,7 @@
       "guardrail_flag": "STEP_IN",
       "rationale": "Drop ~1.5 psi (small step into new territory) to settle launch spin; verify on the next pass.",
       "status": "proposed",
-      "created_at": "2026-06-22 17:44:33.210697"
+      "created_at": "2026-06-22 18:33:15.324477"
     }
   ],
   "maintenance": [

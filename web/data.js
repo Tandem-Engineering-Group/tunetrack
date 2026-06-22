@@ -1,6 +1,6 @@
 window.TUNETRACK_DATA = {
   "meta": {
-    "generated_at": "2026-06-22 14:02:46.213111",
+    "generated_at": "2026-06-22 14:12:18.069076",
     "data_source": "SYNTHETIC",
     "disclaimer": "SYNTHETIC demo data \u2014 generated, not measured. Read-only; no calibration is written or flashed.",
     "car": "2020 Dodge Challenger SRT Hellcat Redeye"
@@ -147,6 +147,40 @@ window.TUNETRACK_DATA = {
             "msg": "15% peak launch slip"
           }
         ]
+      },
+      "readiness": {
+        "ready_go": true,
+        "checks": [
+          {
+            "channel": "ect_c",
+            "value": 88.2,
+            "lo": 82.0,
+            "hi": 98.0,
+            "ok": true
+          },
+          {
+            "channel": "aircharge_temp_c",
+            "value": 38.8,
+            "lo": null,
+            "hi": 50.0,
+            "ok": true
+          },
+          {
+            "channel": "fuel_press_kpa",
+            "value": 586.0,
+            "lo": 550.0,
+            "hi": null,
+            "ok": true
+          },
+          {
+            "channel": "ltr_coolant_c",
+            "value": 41.1,
+            "lo": 30.0,
+            "hi": 55.0,
+            "ok": true
+          }
+        ],
+        "staging_at": "2026-06-20 19:42:13.960000"
       },
       "timeslip": {
         "slip_id": 1,

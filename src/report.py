@@ -17,6 +17,7 @@ import pandas as pd
 
 from db import connect, run_frame, now_iso, ROOT, SYNTHETIC_TAG, DB_PATH
 from seed import DEMO_TODAY
+from greenlight import readiness as greenlight_readiness
 
 ATM_KPA = 101.3
 OUT = ROOT / "web" / "data.json"
@@ -141,6 +142,7 @@ def build_report(conn) -> dict:
             "scores": {"overall": ev.get("score"),
                        "power": power.get("score"), "traction": traction.get("score")},
             "flags": flags, "power": power, "traction": traction,
+            "readiness": greenlight_readiness(conn, rid),
             "timeslip": slip, "weather": wx, "tire": tire, "track": track,
             "series": _series(df), "engine_snapshot": _engine_snapshot(df),
         })

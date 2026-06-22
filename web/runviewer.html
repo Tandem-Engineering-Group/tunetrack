@@ -13,6 +13,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--ink);font-family:Calibri,system-ui,Segoe UI,sans-serif;padding:14px}
   .wrap{max-width:1180px;margin:0 auto}
+  .banner{background:#3a2a10;border:1px solid var(--amber);color:var(--yellow);font-size:12px;padding:7px 12px;border-radius:9px;margin-bottom:12px;text-align:center}
   .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
   .between{justify-content:space-between}
   .grid{display:grid;gap:12px}
@@ -33,71 +34,100 @@
   svg{display:block;width:100%;height:auto}
   .lbl{font-size:11px;color:var(--mut)}
   .ttl{font-size:12px;font-weight:700}
+  .rec{font-size:12px;border-left:3px solid var(--amber);padding:6px 10px;margin-top:7px;background:var(--panel2);border-radius:0 8px 8px 0}
+  .rec .gf{font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;background:#3a1815;color:var(--red);margin-left:6px}
   @media(max-width:760px){ .hide-sm{display:none} }
 </style>
 </head>
 <body>
-<div class="wrap" id="app"></div>
+<div class="wrap">
+<div class="banner" id="banner">⚠ SYNTHETIC demo data — generated, not measured. Read-only to the PCM.</div>
+<div id="app"></div>
+</div>
 
+<script src="data.js"></script>
 <script>
 /* ---------- palette ---------- */
 const C={bg:"#121419",panel:"#1A1E25",panel2:"#222831",line:"#2C333D",ink:"#F3F6F9",
   mut:"#8A95A1",amber:"#F2640A",cyan:"#19B9CC",green:"#3FCF6B",red:"#F0473E",yellow:"#F2B705"};
 const stateCol=l=> l==="ok"?C.green : l==="warn"?C.yellow : C.red;
+const TT = window.TUNETRACK_DATA || null;
+if(TT && TT.meta){ document.getElementById("banner").textContent =
+  "⚠ "+TT.meta.data_source+" demo data — generated, not measured. Read-only to the PCM. Generated "+TT.meta.generated_at; }
 
-/* ---------- sample data ---------- */
-const DT=0.1, DUR=12.8, N=Math.round(DUR/DT)+1, TL=1.0;
-const wob=(i,k,a)=> a*Math.sin(i*k)+(a/2)*Math.sin(i*k*2.3+1.7);
-
-function makeRun(m){
-  const cycle=1.9, s=[];
-  for(let i=0;i<N;i++){
-    const t=+(i*DT).toFixed(2), x=t-TL;
-    let rpm,boost,slip,mph,inj;
-    if(x<0){ rpm=2080+wob(i,.9,40); boost=6+wob(i,.7,.6); slip=0; mph=0; inj=22+wob(i,.5,1.5); }
-    else{
-      if(x<1.2){ rpm=2100+(x/1.2)*4200; } else { const cp=((x-1.2)%cycle)/cycle; rpm=4300+cp*2000; }
-      rpm+=wob(i,1.3,35);
-      const ramp=Math.min(1,x/.6), cp2= x<1.2?1:((x-1.2)%cycle)/cycle;
-      const dip= cp2<.16 ? (1-cp2/.16)*2.4 : 0;
-      boost=15.6*ramp-dip+wob(i,1.1,.25);
-      slip=Math.max(0, m.slipPeak*Math.exp(-(((x-.35)/.55)**2))+3.2+wob(i,.8,.6));
-      mph=m.trapMph*Math.min(1,Math.pow(x/m.quarterEt,.92));
-      inj=30+Math.min(1,x/m.quarterEt)*(m.injPeak-30)+wob(i,1.4,1.2);
-    }
-    let lam=0.80+wob(i,1.6,.012); if(m.leanBlip) lam+=m.leanBlip*Math.exp(-(((t-7.4)/.5)**2));
-    let knock=m.knockPeak?+(m.knockPeak*Math.exp(-(((t-6.6)/.45)**2))).toFixed(2):0;
-    const iat=m.iatBase+(t/DUR)*17+wob(i,.4,.4);
-    const fuel=66-(m.fuelDip?m.fuelDip*Math.max(0,(t-7.5)/4.5):0)+wob(i,.9,.5);
-    s.push({t,rpm:Math.round(Math.max(0,rpm)),boost:+Math.max(0,boost).toFixed(1),slip:+slip.toFixed(1),
-      mph:+mph.toFixed(1),inj:+Math.min(99,inj).toFixed(1),lamMeas:+lam.toFixed(3),lamCmd:0.80,
-      knock,iat:+iat.toFixed(1),fuel:+fuel.toFixed(1)});
-  }
-  const pk=k=>s.reduce((a,b)=>Math.max(a,b[k]),-Infinity);
-  const mn=(k,f)=>s.filter(p=>p.t>=f).reduce((a,b)=>Math.min(a,b[k]),Infinity);
-  return {...m, series:s, peaks:{knock:pk("knock"),inj:pk("inj"),slip:pk("slip"),iat:pk("iat"),
-    fuelMin:mn("fuel",7.5),leanMax:+(pk("lamMeas")-0.80).toFixed(3)},
-    marks:{sixty:TL+m.sixty,eighth:TL+m.eighthEt,quarter:TL+m.quarterEt}};
+/* ---------- map a pipeline run -> view model ---------- */
+function mapRun(d){
+  const s=d.series||{t:[]};
+  const series=(s.t||[]).map((t,i)=>({
+    t:+(+t).toFixed(2),
+    rpm:Math.round(s.engine_rpm[i]),
+    boost:+(+s.boost_psi[i]).toFixed(1),
+    slip:+(+s.rear_slip_pct[i]).toFixed(1),
+    mph:+(+s.vehicle_speed[i]).toFixed(1),
+    inj:+(+s.inj_duty[i]).toFixed(1),
+    lamMeas:+(1/s.eq_meas[i]).toFixed(3),   // EQ ratio -> lambda
+    lamCmd:+(1/s.eq_cmd[i]).toFixed(3),
+    knock:+(+s.knock[i]).toFixed(2),
+    fuel:+(s.fuel_press[i]*0.145).toFixed(1), // kPa -> psi
+  }));
+  const ts=d.timeslip||{}, p=d.power||{}, tr=d.traction||{}, sc=d.scores||{};
+  return {
+    id:"R"+d.run_id, label:"Run "+d.run_id, date:(d.ts_start||"").slice(0,16),
+    lane:ts.lane||"—",
+    da:(d.weather&&d.weather.density_altitude_ft!=null)?Math.round(d.weather.density_altitude_ft):"—",
+    trackTemp:(d.track&&d.track.surface_temp_c!=null)?d.track.surface_temp_c:"—",
+    e85:(TT&&TT.build_state&&TT.build_state.e85_pct!=null)?TT.build_state.e85_pct:"—",
+    launchPsi:(d.tire&&d.tire.cold_psi_r!=null)?d.tire.cold_psi_r:"—",
+    rt:ts.rt||0, sixty:ts.sixty||0, eighthEt:ts.eighth_et||0,
+    quarterEt:ts.quarter_et||0, quarterMph:ts.quarter_mph||0,
+    scores:sc, flags:d.flags||[], power:p, traction:tr, readiness:d.readiness||null,
+    series,
+    peaks:{
+      knock:(p.knock&&p.knock.peak_deg)||0,
+      inj:(p.inj_duty&&p.inj_duty.peak_pct)||0,
+      slip:(tr.slip&&tr.slip.peak_pct)||0,
+      iat:(p.heat_soak&&p.heat_soak.end_c)||0,
+      fuelMin:(p.fuel_press&&p.fuel_press.min_kpa)||0,
+      leanMax:(p.lambda&&p.lambda.peak_lean_pct)||0,
+    },
+    marks:{ sixty:ts.sixty||0, eighth:ts.eighth_et||0, quarter:ts.quarter_et||0 },
+  };
 }
 
-const RUNS=[
-  makeRun({id:"P6",label:"Pass 6",date:"Best of night",lane:"Right",da:612,trackTemp:31,e85:84,launchPsi:19,rt:0.041,sixty:1.62,eighthEt:6.79,quarterEt:10.55,quarterMph:131.4,trapMph:131.4,slipPeak:12,knockPeak:0,leanBlip:0,fuelDip:0,injPeak:86,iatBase:40,belt:true}),
-  makeRun({id:"P5",label:"Pass 5",date:"",lane:"Right",da:690,trackTemp:33,e85:84,launchPsi:19,rt:0.066,sixty:1.66,eighthEt:6.86,quarterEt:10.64,quarterMph:130.6,trapMph:130.6,slipPeak:16,knockPeak:0.4,leanBlip:0,fuelDip:0,injPeak:87,iatBase:43,belt:true}),
-  makeRun({id:"P4",label:"Pass 4",date:"",lane:"Left",da:740,trackTemp:35,e85:83,launchPsi:20,rt:0.052,sixty:1.70,eighthEt:6.95,quarterEt:10.71,quarterMph:129.7,trapMph:129.7,slipPeak:21,knockPeak:0.6,leanBlip:0,fuelDip:3,injPeak:89,iatBase:47,belt:true}),
-  makeRun({id:"P3",label:"Pass 3",date:"",lane:"Left",da:980,trackTemp:38,e85:83,launchPsi:20,rt:0.088,sixty:1.76,eighthEt:7.06,quarterEt:10.83,quarterMph:128.3,trapMph:128.3,slipPeak:27,knockPeak:0.9,leanBlip:0.03,fuelDip:6,injPeak:91,iatBase:52,belt:true}),
-  makeRun({id:"P2",label:"Pass 2",date:"",lane:"Right",da:1120,trackTemp:40,e85:82,launchPsi:21,rt:0.121,sixty:1.80,eighthEt:7.14,quarterEt:10.88,quarterMph:127.1,trapMph:127.1,slipPeak:33,knockPeak:1.1,leanBlip:0.05,fuelDip:7,injPeak:92,iatBase:55,belt:true}),
-  makeRun({id:"P1",label:"Pass 1",date:"Shakedown",lane:"Right",da:1240,trackTemp:42,e85:82,launchPsi:22,rt:0.140,sixty:1.85,eighthEt:7.25,quarterEt:11.02,quarterMph:125.6,trapMph:125.6,slipPeak:41,knockPeak:1.4,leanBlip:0.07,fuelDip:9,injPeak:94,iatBase:58,belt:false}),
-];
+/* ---------- fallback seed (only if data.js is absent) ---------- */
+function seedRuns(){
+  const SDT=0.1,SDUR=12.8,SN=Math.round(SDUR/SDT)+1,STL=1.0;
+  const wob=(i,k,a)=>a*Math.sin(i*k)+(a/2)*Math.sin(i*k*2.3+1.7);
+  function mk(m){const cycle=1.9,s=[];
+    for(let i=0;i<SN;i++){const t=+(i*SDT).toFixed(2),x=t-STL;let rpm,boost,slip,mph,inj;
+      if(x<0){rpm=2080+wob(i,.9,40);boost=6;slip=0;mph=0;inj=22;}
+      else{if(x<1.2){rpm=2100+(x/1.2)*4200;}else{const cp=((x-1.2)%cycle)/cycle;rpm=4300+cp*2000;}
+        rpm+=wob(i,1.3,35);const ramp=Math.min(1,x/.6);boost=15.6*ramp+wob(i,1.1,.25);
+        slip=Math.max(0,m.slipPeak*Math.exp(-(((x-.35)/.55)**2))+3.2);
+        mph=m.trapMph*Math.min(1,Math.pow(x/m.quarterEt,.92));
+        inj=30+Math.min(1,x/m.quarterEt)*(m.injPeak-30);}
+      let lam=0.80+wob(i,1.6,.012);let knock=m.knockPeak?+(m.knockPeak*Math.exp(-(((t-6.6)/.45)**2))).toFixed(2):0;
+      const fuel=66+wob(i,.9,.5);
+      s.push({t,rpm:Math.round(Math.max(0,rpm)),boost:+Math.max(0,boost).toFixed(1),slip:+slip.toFixed(1),
+        mph:+mph.toFixed(1),inj:+Math.min(99,inj).toFixed(1),lamMeas:+lam.toFixed(3),lamCmd:0.80,knock,fuel:+fuel.toFixed(1)});}
+    const pk=k=>s.reduce((a,b)=>Math.max(a,b[k]),-Infinity);
+    return {...m,series:s,peaks:{knock:pk("knock"),inj:pk("inj"),slip:pk("slip"),iat:55,fuelMin:440,leanMax:2},
+      marks:{sixty:STL+m.sixty,eighth:STL+m.eighthEt,quarter:STL+m.quarterEt},scores:{},flags:[],power:{},traction:{},readiness:null};}
+  return [mk({id:"P1",label:"Pass 1",date:"seed",lane:"R",da:700,trackTemp:33,e85:84,launchPsi:19,rt:.05,sixty:1.62,eighthEt:6.79,quarterEt:10.55,quarterMph:131,trapMph:131,slipPeak:12,knockPeak:0,injPeak:86})];
+}
 
-/* ---------- svg chart ---------- */
+let RUNS = (TT && TT.runs && TT.runs.length) ? TT.runs.map(mapRun) : seedRuns();
+
+/* ---------- chart geometry (DUR/N set per active run) ---------- */
+let DUR = RUNS[0].series[RUNS[0].series.length-1].t;
+let N   = RUNS[0].series.length;
 const CW=320, CH=130, PL=30, PR=22, PT=8, PB=18;
 const xAt=t=> PL+(t/DUR)*(CW-PL-PR);
 const yAt=(v,lo,hi)=> CH-PB-((v-lo)/(hi-lo))*(CH-PT-PB);
 function path(series,key,lo,hi){ let d=""; for(let i=0;i<series.length;i++){const p=series[i];
   d+=(i?"L":"M")+xAt(p.t).toFixed(1)+" "+yAt(p[key],lo,hi).toFixed(1)+" ";} return d.trim(); }
 function chartSVG(run,defs){
-  const m=run.marks;
-  let g="";
+  const m=run.marks; let g="";
   for(let v=0;v<=DUR;v+=2){ const x=xAt(v).toFixed(1);
     g+=`<line x1="${x}" y1="${PT}" x2="${x}" y2="${CH-PB}" stroke="${C.line}" stroke-width=".5"/>`+
        `<text x="${x}" y="${CH-5}" fill="${C.mut}" font-size="8" text-anchor="middle">${v}s</text>`; }
@@ -105,28 +135,25 @@ function chartSVG(run,defs){
     g+=`<line x1="${x}" y1="${PT}" x2="${x}" y2="${CH-PB}" stroke="${C.mut}" stroke-width=".7" stroke-dasharray="2 3"/>`; });
   let lines="";
   defs.forEach(d=>{ lines+=`<path d="${path(run.series,d.key,d.lo,d.hi)}" fill="none" stroke="${d.col}" stroke-width="1.7" ${d.dash?'stroke-dasharray="4 3"':''}/>`; });
-  // y labels from first def
-  const a=defs[0];
-  let yl=""; for(let k=0;k<=2;k++){ const v=a.lo+(a.hi-a.lo)*k/2; const y=yAt(v,a.lo,a.hi).toFixed(1);
+  const a=defs[0]; let yl="";
+  for(let k=0;k<=2;k++){ const v=a.lo+(a.hi-a.lo)*k/2; const y=yAt(v,a.lo,a.hi).toFixed(1);
     yl+=`<text x="${PL-4}" y="${(+y+3)}" fill="${C.mut}" font-size="8" text-anchor="end">${a.fmt?a.fmt(v):Math.round(v)}</text>`; }
   const cx=xAt(0).toFixed(1);
   return `<svg viewBox="0 0 ${CW} ${CH}" preserveAspectRatio="none" style="height:130px">
     ${g}${yl}${lines}
-    <line class="cursor" x1="${cx}" y1="${PT}" x2="${cx}" y2="${CH-PB}" stroke="${C.amber}" stroke-width="1.3"/>
-  </svg>`;
+    <line class="cursor" x1="${cx}" y1="${PT}" x2="${cx}" y2="${CH-PB}" stroke="${C.amber}" stroke-width="1.3"/></svg>`;
 }
 
 /* ---------- state ---------- */
-let runId="P6", idx=N-1, playing=false, speed=2, tmr=null;
+let runId=RUNS[0].id, idx=N-1, playing=false, speed=2, tmr=null;
 const run=()=>RUNS.find(r=>r.id===runId);
+function flagSev(r,metric){ const f=(r.flags||[]).find(x=>x.metric===metric);
+  return f?(f.sev==="HARD"?"bad":"warn"):null; }
 
-/* ---------- render shell ---------- */
 function gaugeHTML(id,label,unit,sub){ return `<div class="gauge">
   <div class="row between"><span class="eyebrow">${label}</span><span class="lbl" id="${id}-sub">${sub||''}</span></div>
   <div style="margin-top:4px"><span class="tabnum" id="${id}-v" style="font-size:22px;font-weight:800"></span>
-  <span class="lbl">${unit}</span></div>
-  <div class="bar"><i id="${id}-bar"></i></div></div>`; }
-
+  <span class="lbl">${unit}</span></div><div class="bar"><i id="${id}-bar"></i></div></div>`; }
 function chip(id,label){ return `<div class="chip"><div class="row" style="gap:8px">
   <span class="dot" id="${id}-d" style="width:13px;height:13px"></span><span style="font-size:12px">${label}</span></div>
   <span class="tabnum" id="${id}-v" style="font-size:12px;font-weight:700"></span></div>`; }
@@ -141,13 +168,9 @@ function shell(){
     </div>
     <div class="row" style="gap:6px" id="runbtns"></div>
   </div>
-
   <div class="grid" style="grid-template-columns:1fr;margin-bottom:12px" id="band">
-    <div class="grid" style="grid-template-columns:1fr;gap:12px">
-      <div class="grid" id="band3" style="grid-template-columns:1fr"></div>
-    </div>
+    <div class="grid" id="band3" style="grid-template-columns:1fr"></div>
   </div>
-
   <div class="panel row" style="gap:12px;margin-bottom:12px;padding:10px 14px">
     <button class="icobtn" id="play" style="background:${C.amber}"></button>
     <button class="icobtn" id="reset" style="background:${C.panel2};color:${C.mut}">↺</button>
@@ -158,14 +181,11 @@ function shell(){
     <div style="text-align:right"><span class="tabnum" id="tnow" style="font-size:18px;font-weight:800"></span><span class="lbl">s</span></div>
     <button id="speed" style="background:${C.panel2};color:${C.cyan};padding:7px 11px;font-size:12px;font-weight:700"></button>
   </div>
-
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr));margin-bottom:12px">
     ${gaugeHTML('rpm','Engine','rpm')}${gaugeHTML('boost','Boost','psi')}
     ${gaugeHTML('lam','Lambda','λ')}${gaugeHTML('slip','Rear slip','%')}${gaugeHTML('inj','Inj duty','%')}
   </div>
-
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr));margin-bottom:12px" id="charts"></div>
-
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr))">
     <div class="panel">
       <div class="ttl" style="margin-bottom:8px;color:${C.amber}">POWER &amp; SAFETY</div>
@@ -183,33 +203,29 @@ function shell(){
       </div>
     </div>
   </div>
+  <div class="panel" style="margin-top:12px"><div class="ttl" style="color:${C.green};margin-bottom:4px">RETUNE ADVISORY <span class="lbl" style="font-weight:400">— recommendation only, never flashed</span></div>
+    <div id="retune"></div></div>
   <div style="text-align:center;font-size:10px;color:${C.mut};margin-top:12px">
-    Sample telemetry for layout — swap for your VCM Scanner log. Press play to sweep the pass; scrub to inspect any point.</div>`;
+    Telemetry from the pipeline's read-only export. Press play to sweep the pass; scrub to inspect any point.</div>`;
 
-  // run buttons
   document.getElementById("runbtns").innerHTML=RUNS.map(r=>
     `<button class="runbtn ${r.id===runId?'active':''}" data-r="${r.id}">${r.label}</button>`).join("");
   document.querySelectorAll("#runbtns button").forEach(b=>b.onclick=()=>selectRun(b.dataset.r));
-
   document.getElementById("play").onclick=togglePlay;
   document.getElementById("reset").onclick=()=>{playing=false;setPlay();idx=0;update();};
   document.getElementById("speed").onclick=()=>{speed= speed===1?2:speed===2?4:1; renderSpeed();};
   document.getElementById("scrub").oninput=e=>{playing=false;setPlay();idx=+e.target.value;update();};
-
   renderRun();
 }
-
 function renderSpeed(){ document.getElementById("speed").textContent=speed+"×"; if(playing){stopTimer();startTimer();} }
 function setPlay(){ document.getElementById("play").textContent= playing?"❚❚":"►"; }
 
 function renderRun(){
   const r=run();
-  // band: result + greenlight + conditions
+  DUR=r.series[r.series.length-1].t; N=r.series.length;
+  document.getElementById("scrub").max=N-1;
   const pk=r.peaks;
-  const knockLvl=pk.knock===0?"ok":pk.knock<1?"warn":"bad";
-  const fuelLvl=pk.fuelMin>62?"ok":pk.fuelMin>58?"warn":"bad";
-  const iatLvl=pk.iat<60?"ok":pk.iat<68?"warn":"bad";
-  const ready= knockLvl==="ok" && fuelLvl==="ok" && r.belt && iatLvl!=="bad";
+  const ready = r.readiness ? !!r.readiness.ready_go : !(r.flags||[]).some(f=>f.sev==="HARD");
   const tree=[C.yellow,C.yellow,C.green].map(c=>`<span class="dot" style="background:${ready?c:C.line};box-shadow:${ready?`0 0 8px ${c}`:'none'}"></span>`).join("");
   document.getElementById("band3").innerHTML=`
     <div class="grid" style="grid-template-columns:1fr;gap:12px">
@@ -218,13 +234,13 @@ function renderRun(){
           <div class="row between"><span class="eyebrow">1/4 mile</span>
             <span class="lbl panel2" style="padding:2px 8px;border-radius:6px;font-size:10px">${r.lane} lane · ${r.date||r.label}</span></div>
           <div class="row" style="align-items:flex-end;gap:12px;margin-top:4px">
-            <div><span class="tabnum" style="font-size:34px;font-weight:900;color:${C.amber}">${r.quarterEt}</span><span class="lbl"> sec</span></div>
-            <div style="padding-bottom:4px"><span class="tabnum" style="font-size:22px;font-weight:800;color:${C.cyan}">${r.quarterMph}</span><span class="lbl"> mph</span></div>
+            <div><span class="tabnum" style="font-size:34px;font-weight:900;color:${C.amber}">${(+r.quarterEt).toFixed(2)}</span><span class="lbl"> sec</span></div>
+            <div style="padding-bottom:4px"><span class="tabnum" style="font-size:22px;font-weight:800;color:${C.cyan}">${(+r.quarterMph).toFixed(1)}</span><span class="lbl"> mph</span></div>
           </div>
           <div class="row lbl" style="gap:16px;margin-top:6px;font-size:12px">
-            <span>RT <b style="color:${C.ink}">${r.rt.toFixed(3)}</b></span>
-            <span>60′ <b style="color:${C.ink}">${r.sixty.toFixed(2)}</b></span>
-            <span>1/8 <b style="color:${C.ink}">${r.eighthEt.toFixed(2)}</b></span></div>
+            <span>RT <b style="color:${C.ink}">${(+r.rt).toFixed(3)}</b></span>
+            <span>60′ <b style="color:${C.ink}">${(+r.sixty).toFixed(2)}</b></span>
+            <span>1/8 <b style="color:${C.ink}">${(+r.eighthEt).toFixed(2)}</b></span></div>
         </div>
         <div class="panel row" style="gap:14px">
           <div class="grid" style="gap:6px">${tree}</div>
@@ -235,12 +251,11 @@ function renderRun(){
       </div>
       <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:8px" id="cond"></div>
     </div>`;
-  const cond=[["Density alt",r.da,"ft",C.cyan],["Track temp",r.trackTemp,"°C",C.amber],["E85 blend",r.e85,"%",C.cyan],["Launch psi",r.launchPsi,"rear",C.amber]];
-  document.getElementById("cond").innerHTML=cond.map(([l,v,u,a])=>
+  const cond=[["Density alt",r.da,"ft"],["Track temp",r.trackTemp,"°C"],["E85 blend",r.e85,"%"],["Launch psi",r.launchPsi,"rear"]];
+  document.getElementById("cond").innerHTML=cond.map(([l,v,u])=>
     `<div class="gauge" style="padding:10px"><div class="eyebrow">${l}</div>
      <div style="font-weight:700;font-size:14px;margin-top:2px">${v}<span class="lbl"> ${u}</span></div></div>`).join("");
 
-  // charts
   document.getElementById("charts").innerHTML=
     chartCard("Engine speed & boost","rpm / psi",chartSVG(r,[
       {key:"rpm",col:C.cyan,lo:0,hi:6500},{key:"boost",col:C.amber,lo:0,hi:20}]))+
@@ -248,32 +263,41 @@ function renderRun(){
       {key:"lamMeas",col:C.green,lo:0.72,hi:0.90,fmt:v=>v.toFixed(2)},{key:"lamCmd",col:C.mut,lo:0.72,hi:0.90,dash:true}]))+
     chartCard("Rear-wheel slip","%",chartSVG(r,[{key:"slip",col:C.amber,lo:0,hi:45}]))+
     chartCard("Injector duty & fuel pressure","% / psi",chartSVG(r,[
-      {key:"inj",col:C.cyan,lo:0,hi:100},{key:"fuel",col:C.yellow,lo:40,hi:75}]));
+      {key:"inj",col:C.cyan,lo:0,hi:100},{key:"fuel",col:C.yellow,lo:70,hi:92}]));
 
-  // scorecard chips (static per run)
-  const injLvl=pk.inj<85?"ok":pk.inj<=90?"warn":"bad";
-  const slipLvl=pk.slip<15?"ok":pk.slip<25?"warn":"bad";
-  const leanLvl=pk.leanMax<.03?"ok":pk.leanMax<.05?"warn":"bad";
-  const sixtyLvl=r.sixty<1.7?"ok":r.sixty<1.8?"warn":"bad";
+  const knockLvl=flagSev(r,"knock")||(pk.knock>0.1?"warn":"ok");
+  const leanLvl=flagSev(r,"lambda")||"ok";
+  const injLvl=flagSev(r,"inj_duty")||(pk.inj>85?"warn":"ok");
+  const fuelLvl=flagSev(r,"fuel_press")||"ok";
+  const beltOk=!(r.power&&r.power.belt&&r.power.belt.suspected);
+  const iatLvl=pk.iat<55?"ok":pk.iat<68?"warn":"bad";
+  const slipLvl=flagSev(r,"slip")||(pk.slip<5?"ok":"warn");
+  const sixtyLvl=r.sixty<1.4?"ok":r.sixty<1.5?"warn":"bad";
   setChip("knock",knockLvl,pk.knock.toFixed(1)+"°");
-  setChip("lean",leanLvl,"+"+pk.leanMax.toFixed(2));
-  setChip("belt",r.belt?"ok":"bad",r.belt?"held":"sign-off");
+  setChip("lean",leanLvl,"+"+pk.leanMax.toFixed(1)+"%");
+  setChip("belt",beltOk?"ok":"bad",beltOk?"held":"sign-off");
   setChip("injp",injLvl,pk.inj.toFixed(0)+"%");
-  setChip("fuel",fuelLvl,pk.fuelMin.toFixed(0)+" psi");
+  setChip("fuel",fuelLvl,pk.fuelMin.toFixed(0)+" kPa");
   setChip("iat",iatLvl,pk.iat.toFixed(0)+"°C");
-  setChip("sixty",sixtyLvl,r.sixty.toFixed(2)+"s");
+  setChip("sixty",sixtyLvl,(+r.sixty).toFixed(2)+"s");
   setChip("slipp",slipLvl,pk.slip.toFixed(0)+"%");
-  document.getElementById("launchread").textContent= pk.slip<15
-    ? "Hooked clean — slip settled under 15%. Pressure and prep matched the surface."
-    : `Spun to ${pk.slip.toFixed(0)}% off the line — drop launch pressure ~${Math.round((pk.slip-12)/8)} psi and re-read tread temps next pass.`;
+  document.getElementById("launchread").textContent= pk.slip<10
+    ? "Hooked clean — slip settled under 10%. Pressure and prep matched the surface."
+    : `Spun to ${pk.slip.toFixed(0)}% off the line — drop launch pressure ~1.5 psi and re-read tread temps next pass.`;
+
+  const recs=(TT&&TT.retune)||[];
+  document.getElementById("retune").innerHTML = recs.length ? recs.map(x=>{
+    const gf=x.guardrail_flag?`<span class="gf">${x.guardrail_flag}</span>`:"";
+    const d=(x.delta!=null)?` <b>${(+x.delta>0?"+":"")+x.delta}</b>`:"";
+    return `<div class="rec">${x.table_target} @ ${x.cell}${d}${gf}<div class="lbl" style="margin-top:2px">${x.rationale||x.evidence||""}</div></div>`;
+  }).join("") : `<div class="lbl">No advisory (run did not pass the data-quality gate, or no data loaded).</div>`;
 
   renderSpeed(); setPlay(); update();
 }
 function chartCard(t,note,svg){ return `<div class="panel" style="padding:12px">
   <div class="row between" style="margin-bottom:2px"><span class="ttl">${t}</span><span class="lbl" style="font-size:10px">${note}</span></div>${svg}</div>`; }
-function setChip(id,lvl,val){ document.getElementById(id+"-d").style.background=stateCol(lvl); document.getElementById(id+"-v").textContent=val; document.getElementById(id+"-v").style.color=stateCol(lvl); }
+function setChip(id,lvl,val){ document.getElementById(id+"-d").style.background=stateCol(lvl); const v=document.getElementById(id+"-v"); v.textContent=val; v.style.color=stateCol(lvl); }
 
-/* ---------- per-frame update ---------- */
 function gBar(id,v,max,col){ document.getElementById(id+"-v").textContent=v;
   const i=document.getElementById(id+"-bar"); i.style.width=Math.max(0,Math.min(100,(v/max)*100))+"%"; i.style.background=col; }
 function update(){
@@ -284,19 +308,16 @@ function update(){
   gBar("boost",c.boost,18,C.green);
   const lamLvl=(c.lamMeas-c.lamCmd)>.05?C.red:(c.lamMeas-c.lamCmd)>.03?C.yellow:C.green;
   gBar("lam",c.lamMeas.toFixed(2),1,lamLvl); document.getElementById("lam-sub").textContent="cmd "+c.lamCmd.toFixed(2);
-  const slipLvl=c.slip<15?C.green:c.slip<25?C.yellow:C.red;
+  const slipLvl=c.slip<10?C.green:c.slip<20?C.yellow:C.red;
   gBar("slip",c.slip,45,slipLvl);
   gBar("inj",c.inj,100, c.inj>90?C.red:c.inj>85?C.yellow:C.green);
-  // move cursor lines
   const x=xAt(t).toFixed(1);
   document.querySelectorAll(".cursor").forEach(el=>{ el.setAttribute("x1",x); el.setAttribute("x2",x); });
 }
-
-/* ---------- controls ---------- */
 function startTimer(){ tmr=setInterval(()=>{ if(idx>=N-1){ playing=false; setPlay(); stopTimer(); return;} idx++; update(); }, 90/speed); }
 function stopTimer(){ if(tmr){clearInterval(tmr); tmr=null;} }
 function togglePlay(){ if(idx>=N-1) idx=0; playing=!playing; setPlay(); if(playing) startTimer(); else stopTimer(); }
-function selectRun(id){ runId=id; idx=N-1; playing=false; stopTimer();
+function selectRun(id){ runId=id; idx=run().series.length-1; playing=false; stopTimer();
   document.querySelectorAll("#runbtns button").forEach(b=>b.classList.toggle("active",b.dataset.r===id));
   renderRun(); }
 

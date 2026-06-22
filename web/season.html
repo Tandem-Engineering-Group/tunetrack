@@ -11,6 +11,7 @@
   body{background:var(--bg);color:var(--ink);font-family:Calibri,Segoe UI,system-ui,sans-serif;padding:14px}
   .wrap{max-width:1080px;margin:0 auto}
   a{color:var(--cyan);text-decoration:none}
+  .banner{background:#3a2a10;border:1px solid var(--amber);color:var(--yellow);font-size:12px;padding:7px 12px;border-radius:9px;margin-bottom:12px;text-align:center}
   .eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
   h1{font-family:Cambria,Georgia,serif;font-size:24px;margin:2px 0}
   .sub{color:var(--mut);font-size:13px;margin-bottom:14px}
@@ -30,49 +31,85 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="banner" id="banner">⚠ SYNTHETIC demo data — generated, not measured. Read-only to the PCM.</div>
   <div class="eyebrow">TuneTrack · 2026 season &nbsp;·&nbsp; <a href="index.html">← hub</a></div>
   <h1>This year's planned runs</h1>
-  <div class="sub">Windsor / Detroit corridor schedule. Goal: into the 9s on the 3″ pulley + E85.</div>
+  <div class="sub">Season schedule with results overlaid from the run pipeline as events complete.</div>
 
   <div class="top">
-    <div class="sc"><div class="l">Best ET (DA-corr.)</div><b style="color:var(--amber)">10.55</b></div>
-    <div class="sc"><div class="l">Events done</div><b>3 / 8</b></div>
-    <div class="sc"><div class="l">Goal ET</div><b style="color:var(--green)">9.90</b></div>
+    <div class="sc"><div class="l">Best ET</div><b id="s-best" style="color:var(--amber)">—</b></div>
+    <div class="sc"><div class="l">Events done</div><b id="s-done">—</b></div>
+    <div class="sc"><div class="l">Goal ET</div><b id="s-goal" style="color:var(--green)">—</b></div>
     <div class="chartwrap">
-      <div class="l" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:4px">Best ET by event — trending toward goal</div>
-      <svg viewBox="0 0 460 120" style="width:100%;height:auto">
-        <line x1="40" y1="95" x2="450" y2="95" stroke="#2C333D"/>
-        <line x1="40" y1="20" x2="450" y2="20" stroke="#2C333D" stroke-dasharray="3 4"/>
-        <text x="44" y="16" fill="#3FCF6B" font-size="9">goal 9.90</text>
-        <!-- points: 11.02, 10.64, 10.55 mapped; y: 11.2->95, 9.8->20 -->
-        <polyline points="80,62 200,82 320,86" fill="none" stroke="#F2640A" stroke-width="2.5"/>
-        <circle cx="80" cy="62" r="4" fill="#F2640A"/><text x="80" y="52" fill="#F3F6F9" font-size="9" text-anchor="middle">11.02</text>
-        <circle cx="200" cy="82" r="4" fill="#F2640A"/><text x="200" y="74" fill="#F3F6F9" font-size="9" text-anchor="middle">10.64</text>
-        <circle cx="320" cy="86" r="4" fill="#F2640A"/><text x="320" y="78" fill="#F3F6F9" font-size="9" text-anchor="middle">10.55</text>
-        <circle cx="430" cy="22" r="4" fill="none" stroke="#3FCF6B" stroke-width="2"/><text x="430" y="40" fill="#3FCF6B" font-size="9" text-anchor="middle">9.90</text>
-        <text x="80" y="110" fill="#8A95A1" font-size="8" text-anchor="middle">Milan T&T</text>
-        <text x="200" y="110" fill="#8A95A1" font-size="8" text-anchor="middle">Milan T&T</text>
-        <text x="320" y="110" fill="#8A95A1" font-size="8" text-anchor="middle">Cayuga</text>
-        <text x="430" y="110" fill="#3FCF6B" font-size="8" text-anchor="middle">goal</text>
-      </svg>
+      <div class="l" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:4px">Result ET by event — trending toward goal</div>
+      <svg id="chart" viewBox="0 0 460 120" style="width:100%;height:auto"></svg>
     </div>
   </div>
 
   <table>
     <thead><tr><th>Date</th><th>Track</th><th>Type</th><th>Status</th><th class="r">Target</th><th class="r">Result</th></tr></thead>
-    <tbody>
-      <tr><td>Apr 18</td><td>Milan Dragway, MI</td><td>Test & tune</td><td><span class="pill done">DONE</span></td><td class="r">shakedown</td><td class="r">11.02</td></tr>
-      <tr><td>May 9</td><td>Milan Dragway, MI</td><td>Test & tune</td><td><span class="pill done">DONE</span></td><td class="r">10.8</td><td class="r">10.64</td></tr>
-      <tr><td>Jun 6</td><td>TMP Cayuga, ON</td><td>Bracket</td><td><span class="pill done">DONE</span></td><td class="r">10.6</td><td class="r">10.55</td></tr>
-      <tr><td>Jul 11</td><td>Grand Bend Motorplex, ON</td><td>Test & tune</td><td><span class="pill next">NEXT</span></td><td class="r">10.3</td><td class="r">—</td></tr>
-      <tr><td>Aug 1</td><td>US 131 Motorsports Park, MI</td><td>Points</td><td><span class="pill plan">PLANNED</span></td><td class="r">10.1</td><td class="r">—</td></tr>
-      <tr><td>Aug 22</td><td>Milan Dragway, MI</td><td>Grudge night</td><td><span class="pill plan">PLANNED</span></td><td class="r">10.0</td><td class="r">—</td></tr>
-      <tr><td>Sep 12</td><td>Lapeer Intl Dragway, MI</td><td>Test & tune</td><td><span class="pill plan">PLANNED</span></td><td class="r">9.9</td><td class="r">—</td></tr>
-      <tr><td>Oct 3</td><td>TMP Cayuga, ON</td><td>Season finale</td><td><span class="pill plan">PLANNED</span></td><td class="r">9.8</td><td class="r">—</td></tr>
-    </tbody>
+    <tbody id="rows"></tbody>
   </table>
 
-  <div class="hint">Seed schedule — in the build this reads the season_events table and overlays each result from the run pipeline as events complete. Open in a browser if the in-app preview won't load.</div>
+  <div class="hint">Reads the <b>season_events</b> table via the pipeline's <b>web/data.json</b> export; each result is the linked run's 1/4 ET.</div>
 </div>
+
+<script src="data.js"></script>
+<script>
+const FALLBACK=[
+  {date:"2026-04-18",track:"Cecil County",type:"test",status:"done",target_et:9.95,result_et:10.02},
+  {date:"2026-06-20",track:"Maple Grove",type:"test & tune",status:"done",target_et:9.8,result_et:9.78},
+  {date:"2026-07-11",track:"Maple Grove",type:"bracket",status:"next",target_et:9.7,result_et:null},
+];
+const DATA=(window.TUNETRACK_DATA&&window.TUNETRACK_DATA.season)||FALLBACK;
+if(window.TUNETRACK_DATA&&window.TUNETRACK_DATA.meta){
+  document.getElementById("banner").textContent=
+    "⚠ "+window.TUNETRACK_DATA.meta.data_source+" demo data — generated, not measured. Read-only to the PCM.";
+}
+
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(iso){ const p=(iso||"").split("-"); return p.length===3?`${MON[+p[1]-1]} ${+p[2]}`:iso; }
+const PILL={done:"done",next:"next",planned:"plan"};
+const PLABEL={done:"DONE",next:"NEXT",planned:"PLANNED"};
+
+// summary
+const results=DATA.filter(e=>e.result_et!=null).map(e=>e.result_et);
+const targets=DATA.filter(e=>e.target_et!=null).map(e=>e.target_et);
+const bestET=results.length?Math.min(...results):null;
+const goalET=targets.length?Math.min(...targets):null;
+const doneN=DATA.filter(e=>e.status==="done").length;
+document.getElementById("s-best").textContent=bestET!=null?bestET.toFixed(2):"—";
+document.getElementById("s-done").textContent=`${doneN} / ${DATA.length}`;
+document.getElementById("s-goal").textContent=goalET!=null?goalET.toFixed(2):"—";
+
+// table
+document.getElementById("rows").innerHTML=DATA.map(e=>`<tr>
+  <td>${fmtDate(e.date)}</td><td>${e.track}</td><td>${e.type}</td>
+  <td><span class="pill ${PILL[e.status]||"plan"}">${PLABEL[e.status]||e.status.toUpperCase()}</span></td>
+  <td class="r">${e.target_et!=null?e.target_et.toFixed(2):"—"}</td>
+  <td class="r">${e.result_et!=null?e.result_et.toFixed(2):"—"}</td></tr>`).join("");
+
+// chart: result ET for done events + goal line
+const done=DATA.filter(e=>e.result_et!=null);
+const W=460,H=120,PADL=40,PADR=20,PADT=18,PADB=26;
+const lo=Math.min(goalET!=null?goalET:Infinity, ...results)-0.08;
+const hi=Math.max(...results)+0.08;
+const yAt=v=>PADT+(hi-v)/(hi-lo)*(H-PADT-PADB);
+const xAt=i=>PADL+(done.length<=1?0:i/(done.length-1))*(W-PADL-PADR);
+let svg="";
+svg+=`<line x1="${PADL}" y1="${H-PADB}" x2="${W-PADR}" y2="${H-PADB}" stroke="#2C333D"/>`;
+if(goalET!=null){const gy=yAt(goalET).toFixed(1);
+  svg+=`<line x1="${PADL}" y1="${gy}" x2="${W-PADR}" y2="${gy}" stroke="#3FCF6B" stroke-dasharray="3 4"/>`;
+  svg+=`<text x="${PADL+4}" y="${(+gy-3)}" fill="#3FCF6B" font-size="9">goal ${goalET.toFixed(2)}</text>`;}
+if(done.length){
+  const pts=done.map((e,i)=>`${xAt(i).toFixed(1)},${yAt(e.result_et).toFixed(1)}`).join(" ");
+  svg+=`<polyline points="${pts}" fill="none" stroke="#F2640A" stroke-width="2.5"/>`;
+  done.forEach((e,i)=>{ const x=xAt(i).toFixed(1),y=yAt(e.result_et).toFixed(1);
+    svg+=`<circle cx="${x}" cy="${y}" r="4" fill="#F2640A"/>`;
+    svg+=`<text x="${x}" y="${(+y-8)}" fill="#F3F6F9" font-size="9" text-anchor="middle">${e.result_et.toFixed(2)}</text>`;
+    svg+=`<text x="${x}" y="${H-8}" fill="#8A95A1" font-size="8" text-anchor="middle">${fmtDate(e.date)}</text>`;});
+}
+document.getElementById("chart").innerHTML=svg;
+</script>
 </body>
 </html>

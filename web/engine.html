@@ -10,6 +10,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--ink);font-family:Calibri,Segoe UI,system-ui,sans-serif;padding:12px}
   .wrap{max-width:1100px;margin:0 auto}
+  .banner{background:#3a2a10;border:1px solid var(--amber);color:var(--yellow);font-size:12px;padding:7px 12px;border-radius:9px;margin-bottom:12px;text-align:center}
   .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
   .between{justify-content:space-between}
   h1{font-family:Cambria,Georgia,serif;font-size:20px}
@@ -39,6 +40,7 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="banner" id="eng-banner">⚠ SYNTHETIC demo data — interactive model is illustrative. Read-only to the PCM.</div>
   <div class="row between" style="margin-bottom:10px">
     <div>
       <div class="eyebrow">TuneTrack · engine portal</div>
@@ -139,7 +141,8 @@
       </div>
     </div>
   </div>
-  <div class="hint" style="text-align:center">Illustrative model of a supercharged 6.2 on E85 — values are simulated to show behavior and meaning, not a live feed. If the in-app preview won't load, open in a browser.</div>
+  <div class="panel" id="lastpass" style="display:none"></div>
+  <div class="hint" style="text-align:center">Illustrative model of a supercharged 6.2 on E85 — the model is simulated to show behavior and meaning; the snapshot strip above shows your last pass's real peak values from the pipeline. If the in-app preview won't load, open in a browser.</div>
 </div>
 
 <script>
@@ -341,6 +344,22 @@ function frame(now){
 }
 select("boost");
 requestAnimationFrame(frame);
+</script>
+<script src="data.js"></script>
+<script>
+/* surface the real last-pass peak snapshot + banner from the pipeline export */
+(function(){
+  const TT=window.TUNETRACK_DATA; if(!TT) return;
+  const b=document.getElementById("eng-banner");
+  if(b) b.textContent="⚠ "+TT.meta.data_source+" demo data — interactive model is illustrative; the snapshot below is your last pass's real peak values. Read-only to the PCM.";
+  const run=(TT.runs||[])[0]; if(!run||!run.engine_snapshot||!run.engine_snapshot.length) return;
+  const el=document.getElementById("lastpass"); el.style.display="";
+  el.innerHTML='<div class="eyebrow" style="margin-bottom:8px">Last pass — peak-power snapshot (run '+run.run_id+')</div>'+
+    '<div class="grid">'+run.engine_snapshot.map(function(s){
+      return '<div class="g" style="cursor:default" title="'+(s.meaning||"").replace(/"/g,"&quot;")+'"><div class="lab">'+s.label+
+      '</div><div><span class="val">'+s.value_at_peak+'</span> <span class="u">'+s.unit+'</span></div></div>';
+    }).join("")+'</div>';
+})();
 </script>
 </body>
 </html>
